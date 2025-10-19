@@ -21,12 +21,21 @@ def collect_page_links():
     # print(response)
 
     try:
-        response.raise_for_status() # should be 200
+        response.raise_for_status() # first page to go to the page
         print("Request succeeds!")
         soup = BeautifulSoup(response.text, "lxml")
-        # find present
-        url_set = soup.find("a", attrs={"class": "pagination-tab-link--number page--current"}).text
-        print(url_set)
+
+        while True:
+            # find present
+            url_present = soup.find("a", attrs={"class": "pagination-tab-link--number page--current"})["href"]
+            whole_present = ic.BASE_URL_ICOOK + url_present
+            url_links.add(whole_present)
+
+            cond = soup.find("a", attrs={"class": "pagination-tab-link--number page--current"})["href"]
+            if not :
+                break
+
+
     except requests.exceptions.HTTPError as e:
         print(f"Error: {e}")
         # If response error is 403, requests website with headers
