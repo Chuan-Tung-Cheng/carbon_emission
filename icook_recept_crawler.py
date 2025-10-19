@@ -2,13 +2,16 @@
 Goal: Crawling the recipe
 Name: Albert
 """
+
+
 import time
-from datetime import datetime
-import requests
-from bs4 import BeautifulSoup
-from pathlib import Path
 import pandas as pd
 import random
+import requests
+
+from datetime import datetime
+from bs4 import BeautifulSoup
+from pathlib import Path
 
 # Constant
 BASE_URL_ICOOK = "https://icook.tw"
