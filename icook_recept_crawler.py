@@ -8,6 +8,7 @@ import time
 import pandas as pd
 import random
 import requests
+import re
 
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -15,7 +16,6 @@ from bs4 import BeautifulSoup
 
 # Constant
 BASE_URL_ICOOK = "https://icook.tw"
-
 SEARCH_ICOOK = "/search/"
 
 HEADERS = {
@@ -23,10 +23,11 @@ HEADERS = {
 }
 
 DATE_REGEX= "%Y/%m/%d"
-
 MAIN = "main ingredients"
-
 SAUCE = "sauce"
+
+COMPILED_PATTERN = re.compile(r"(\d+\.?\d*|\.\d+)(.*)")
+
 
 class Food:
     """
@@ -65,7 +66,6 @@ class Food:
         self.crawl_datetime = crawl_datetime
 
 
-
     def __hash__(self):
         return hash(self.recipe_url) + hash(self.browsing_num) + hash(self.author) + hash(self.good)
 
@@ -73,6 +73,20 @@ class Food:
         return (self.recipe_url == other.recipe_url
                 and self.browsing_num == other.browsing_num
                 and self.good == other.good)
+
+    @staticmethod
+    def separate_num_unit(string):
+        """
+        param string: Quantity with unit
+        return: num: float, unit: string
+        """
+        match = re.fullmatch(COMPILED_PATTERN, string)
+        if match:
+            num_part = float(match.group(1))
+            unit_part = match.group(2)
+            return num_part, unit_part
+        else:
+            return None, string
 
 
 def crawl_icook_recept():
@@ -174,8 +188,9 @@ def crawl_icook_recept():
                 for ing in ings:
                     ing_name = ing.find("a", attrs={"class": "ingredient-search"}).text.strip()
                     ing_num = ing.find("div", attrs={"class": "ingredient-unit"}).text.strip()
-                    print(f"main ingredient: {ing_name}")
-                    print(f"main ingredient num: {ing_num}")
+                    ing_num, ing_unit =
+                    # print(f"main ingredient: {ing_name}")
+                    # print(f"main ingredient num: {ing_num}")
                     food_data = Food(
                                     recept_id=recept_id,
                                     recipe_name=recipe_name,
@@ -266,6 +281,8 @@ def crawl_icook_recept():
 
 
         recept_df = pd.DataFrame(data, columns=columns)
+        # separate values in column, quantity, into num and nuit
+        recept_df["quantity_processed"] = recept_df["quantity"]
         print("=" * 60)
         print(recept_df)
         print("=" * 60)
