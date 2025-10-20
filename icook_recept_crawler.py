@@ -5,6 +5,8 @@ Name: Albert
 
 
 import time
+from urllib import response
+
 import pandas as pd
 import random
 import requests
@@ -26,7 +28,13 @@ DATE_REGEX= "%Y/%m/%d"
 MAIN = "main ingredients"
 SAUCE = "sauce"
 
-COMPILED_PATTERN = re.compile(r"(\d+\.?\d*|\.\d+)(.*)")
+COMPILED_PATTERN = re.compile(r"(\d+\.?\d*|\.\d+|\d+/\d+)(.*)")
+"""
+\d+\.?\d* -> 1.5
+\.\d+ ->  decimal without, 0.5 
+\d+/\d+ -> fraction, 1/2
+.* -> for any strings
+"""
 
 
 class Food:
@@ -77,14 +85,25 @@ class Food:
     @staticmethod
     def separate_num_unit(string):
         """
+        separate number and unit
         param string: Quantity with unit
         return: num: float, unit: string
         """
         match = re.fullmatch(COMPILED_PATTERN, string)
         if match:
-            num_part = float(match.group(1))
-            unit_part = match.group(2)
-            return num_part, unit_part
+            # extract the unit part
+            unit_part = match.group(2).strip().replace(" ", "")
+            try:
+                # extract the num part
+                num_part = float(match.group(1).strip().replace(" ", ""))
+                return num_part, unit_part
+
+            except ValueError: # for fraction scenario
+                # extract the num part
+                fractions = match.group(1).strip().split("/")
+                numerator, denominator = map(int, fractions)
+                num_part = numerator / denominator
+                return num_part, unit_part
         else:
             return None, string
 
@@ -150,7 +169,11 @@ def crawl_icook_recept():
                 upload_date = datetime.date(datetime.strptime(upload_date, DATE_REGEX))
                 # print(f"upload date: {upload_date}", type(upload_date))
                 # find browsing
-                browsing = int(upload_browsing.find("div").text.strip().replace(" ", "")[:-2])
+                browsing = upload_browsing.find("div").text.strip().replace(" ", "")[:-2]
+                if len(browsing) > 3:
+                    int(browsing.replace(",", ""))
+                else:
+                    browsing = int(browsing)
                 # print(f"browsing num: {browsing}", type(browsing))
         #### find upload  date& browsing end ####
 
@@ -188,7 +211,7 @@ def crawl_icook_recept():
                 for ing in ings:
                     ing_name = ing.find("a", attrs={"class": "ingredient-search"}).text.strip()
                     ing_num = ing.find("div", attrs={"class": "ingredient-unit"}).text.strip()
-                    ing_num, ing_unit =
+                    ing_num, ing_unit = Food.separate_num_unit(ing_num)
                     # print(f"main ingredient: {ing_name}")
                     # print(f"main ingredient num: {ing_num}")
                     food_data = Food(
@@ -203,7 +226,7 @@ def crawl_icook_recept():
                                     recept_type=MAIN,
                                     ingredients=ing_name,
                                     quantity=ing_num,
-                                    unit=unit,
+                                    unit=ing_unit,
                                     recipe_upload_date=upload_date,
                                     crawl_datetime=crawl_datetime,
                                     )
@@ -221,6 +244,7 @@ def crawl_icook_recept():
                     sauce_num = sauce.find("div", attrs={"class": "ingredient-unit"}).text.strip()
                     # print(f"sauce ingredient: {sauce_name}")
                     # print(f"sauce ingredient num: {sauce_num}")
+                    sauce_num, sauce_unit = Food.separate_num_unit(sauce_num)
                     food_data = Food(
                         recept_id=recept_id,
                         recipe_name=recipe_name,
@@ -233,7 +257,7 @@ def crawl_icook_recept():
                         recept_type=SAUCE,
                         ingredients=sauce_name,
                         quantity=sauce_num,
-                        unit=unit,
+                        unit=sauce_unit,
                         recipe_upload_date=upload_date,
                         crawl_datetime=crawl_datetime,
                     )
@@ -281,11 +305,10 @@ def crawl_icook_recept():
 
 
         recept_df = pd.DataFrame(data, columns=columns)
-        # separate values in column, quantity, into num and nuit
-        recept_df["quantity_processed"] = recept_df["quantity"]
         print("=" * 60)
         print(recept_df)
         print("=" * 60)
+
         filename = "recept_data.csv"
         recept_df.to_csv(filename, index=False, mode="w", encoding="utf-8")
         print(f"{filename} has been saved successfully")
