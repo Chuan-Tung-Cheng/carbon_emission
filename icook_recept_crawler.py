@@ -5,17 +5,19 @@ Name: Albert
 
 
 import time
+from urllib import response
+
 import pandas as pd
 import random
 import requests
+import re
 
 from datetime import datetime
 from bs4 import BeautifulSoup
-from pathlib import Path
+
 
 # Constant
 BASE_URL_ICOOK = "https://icook.tw"
-
 SEARCH_ICOOK = "/search/"
 
 HEADERS = {
@@ -23,6 +25,16 @@ HEADERS = {
 }
 
 DATE_REGEX= "%Y/%m/%d"
+MAIN = "main ingredients"
+SAUCE = "sauce"
+
+COMPILED_PATTERN = re.compile(r"(\d+\.?\d*|\.\d+|\d+/\d+)(.*)")
+"""
+\d+\.?\d* -> 1.5
+\.\d+ ->  decimal without, 0.5 
+\d+/\d+ -> fraction, 1/2
+.* -> for any strings
+"""
 
 
 class Food:
@@ -30,31 +42,36 @@ class Food:
     This class is to record how many things that need to be stored
     """
     def __init__(self,
+                 recept_id,
                  recipe_name, # str
                  author, # str
-                 recipe_url, # str
-                 recipe_upload_date, # datetime
-                 browsing_num, # int
                  good, # int
-                 people, # int,
+                 recipe_url, # str
+                 browsing_num, # int only in icook
+                 people,  # int,
                  cooking_time, # int
-                 main_ingredients, # list
-                 sauce, # list
+                 recept_type, # str
+                 ingredients, # list
+                 quantity,  # int
+                 unit, # str
+                 recipe_upload_date, # datetime
                  crawl_datetime, # datetime
                  ):
 
+        self.recept_id = recept_id # pk
         self.recipe_name = recipe_name # recipe name
         self.author = author  # recipe creator
+        self.good = good  # recipe reputation
         self.recipe_url = recipe_url # recipe url
-        self.recipe_upload_date = recipe_upload_date # recipe_upload_date
         self.browsing_num = browsing_num # browsing_num
-        self.good = good # recipe reputation
-        self.people = people # the number of people
-        self.cooking_time = cooking_time # cooking time
-        self.main_ingredients = main_ingredients # cooking ingredients
-        self.sauce = sauce # cooking sauce
+        self.people = people  # the number of people
+        self.cooking_time = cooking_time  # cooking time
+        self.recept_type = recept_type
+        self.ingredients = ingredients # cooking ingredients
+        self.quantity = quantity
+        self.unit = unit
+        self.recipe_upload_date = recipe_upload_date  # recipe_upload_date
         self.crawl_datetime = crawl_datetime
-
 
 
     def __hash__(self):
@@ -65,12 +82,37 @@ class Food:
                 and self.browsing_num == other.browsing_num
                 and self.good == other.good)
 
+    @staticmethod
+    def separate_num_unit(string):
+        """
+        separate number and unit
+        param string: Quantity with unit
+        return: num: float, unit: string
+        """
+        match = re.fullmatch(COMPILED_PATTERN, string)
+        if match:
+            # extract the unit part
+            unit_part = match.group(2).strip().replace(" ", "")
+            try:
+                # extract the num part
+                num_part = float(match.group(1).strip().replace(" ", ""))
+                return num_part, unit_part
+
+            except ValueError: # for fraction scenario
+                # extract the num part
+                fractions = match.group(1).strip().split("/")
+                numerator, denominator = map(int, fractions)
+                num_part = numerator / denominator
+                return num_part, unit_part
+        else:
+            return None, string
+
 
 def crawl_icook_recept():
     """
     This function is to crawl the icook recipe page
     """
-
+    recept_id = None
     recipe_name = str
     author = str
     recipe_url = "https://icook.tw/recipes/482266"
@@ -79,23 +121,32 @@ def crawl_icook_recept():
     good = None
     ppl = None # means people
     time_item = None
-    ing_list = [] # collect the all of main ings
-    sauce_list = [] # collect the all of source ings
+    recept_type = None
+    quantity = 0
+    unit = None
     crawl_datetime = datetime.now()
 
+    food_list = []
+
     response = requests.get(recipe_url, headers=HEADERS) # HTML
+
     # print(response) # show 200 or not
     try:
         response.raise_for_status() # make sure to receive 200
 
         soup = BeautifulSoup(response.text, "lxml") # HTML
-        # # print(soup)
+        # print(soup)
+
+        #### find ID ####
+        recept_id = recipe_url.split("/")[-1]
+        #### find ID end ####
+
         #### find author ####
-        r_author = soup.find_all("a", attrs={"class": "author-name-link"})
+        r_author = soup.find("a", attrs={"class": "author-name-link"})
         if r_author: # if author exist
             for author in r_author:
                 author = author.text.strip()
-                print(f"author: {author}", type(author))
+                # print(f"author: {author}", type(author))
         #### find author end ####
 
         #### find recipe name ####
@@ -103,9 +154,7 @@ def crawl_icook_recept():
         if r_recipe_name:
             for recipe_name in r_recipe_name:
                 recipe_name = recipe_name.text.strip()
-                print(f"recipe: {recipe_name}", type(recipe_name))
-        else:
-            recipe_name = None
+                # print(f"recipe: {recipe_name}", type(recipe_name))
         #### find recipe name end ####
 
         #### find upload date & browsing  ####
@@ -118,10 +167,14 @@ def crawl_icook_recept():
                 upload_date = upload_browsing.find("time").text.strip().replace(" ", "")[:-2]
                 # regex datetime
                 upload_date = datetime.date(datetime.strptime(upload_date, DATE_REGEX))
-                print(f"upload date: {upload_date}", type(upload_date))
+                # print(f"upload date: {upload_date}", type(upload_date))
                 # find browsing
-                browsing = int(upload_browsing.find("div").text.strip().replace(" ", "")[:-2])
-                print(f"browsing num: {browsing}", type(browsing))
+                browsing = upload_browsing.find("div").text.strip().replace(" ", "")[:-2]
+                if len(browsing) > 3:
+                    int(browsing.replace(",", ""))
+                else:
+                    browsing = int(browsing)
+                # print(f"browsing num: {browsing}", type(browsing))
         #### find upload  date& browsing end ####
 
         #### find good reputation ####
@@ -130,7 +183,7 @@ def crawl_icook_recept():
         if r_good:
             for good in r_good:
                 good = int(good.text.strip())
-                print(f"reputation: {good}", type(good))
+                # print(f"reputation: {good}", type(good))
         #### find good reputation end ####
 
         #### find people ####
@@ -138,7 +191,7 @@ def crawl_icook_recept():
         if r_ppl:
             for ppl in r_ppl:
                 ppl = int(ppl.find("span", attrs={"class": "num"}).text.strip())
-                print(f"serving : {ppl}", type(ppl))
+                # print(f"serving : {ppl}", type(ppl))
         #### find people end ####
 
         #### find cooking time ####
@@ -146,21 +199,38 @@ def crawl_icook_recept():
         if r_time:
             for time_item in r_time:
                 time_item = int(time_item.find("span", attrs={"class": "num"}).text.strip())
-                print(f"time : {time_item}", type(time_item))
+                # print(f"time : {time_item}", type(time_item))
         #### find cooking time end ####
 
-        #### find main ingredients ####
+        ### find main ingredients ####
         r_ings = soup.find_all("div", attrs={"class": "group group-0"})
         # print(r_ings)
         if r_ings:
             for r_ing in r_ings:
-                ings = r_ing.find_all("li", attrs={"class": "ingredient"})
+                ings = r_ing.find_all("li", attrs={"class": "ingredient"}) # list
                 for ing in ings:
                     ing_name = ing.find("a", attrs={"class": "ingredient-search"}).text.strip()
                     ing_num = ing.find("div", attrs={"class": "ingredient-unit"}).text.strip()
-                    print(f"main ingredient: {ing_name}", type(ing_name))
-                    print(f"main ingredient num: {ing_num}", type(ing_num))
-                    ing_list.append([ing_name, ing_num])
+                    ing_num, ing_unit = Food.separate_num_unit(ing_num)
+                    # print(f"main ingredient: {ing_name}")
+                    # print(f"main ingredient num: {ing_num}")
+                    food_data = Food(
+                                    recept_id=recept_id,
+                                    recipe_name=recipe_name,
+                                    author=author,
+                                    good=good,
+                                    recipe_url=recipe_url,
+                                    browsing_num=browsing,
+                                    people=ppl,
+                                    cooking_time=time_item,
+                                    recept_type=MAIN,
+                                    ingredients=ing_name,
+                                    quantity=ing_num,
+                                    unit=ing_unit,
+                                    recipe_upload_date=upload_date,
+                                    crawl_datetime=crawl_datetime,
+                                    )
+                    food_list.append(food_data)
         #### find main ingredients end ####
 
         #### find sauce ingredients ####
@@ -172,62 +242,76 @@ def crawl_icook_recept():
                 for sauce in sauces:
                     sauce_name = sauce.find("a", attrs={"class": "ingredient-search"}).text.strip()
                     sauce_num = sauce.find("div", attrs={"class": "ingredient-unit"}).text.strip()
-                    print(f"sauce ingredient: {sauce_name}", type(sauce_name))
-                    print(f"sauce ingredient num: {sauce_num}", type(sauce_num))
-                    sauce_list = [sauce_name, sauce_num]
+                    # print(f"sauce ingredient: {sauce_name}")
+                    # print(f"sauce ingredient num: {sauce_num}")
+                    sauce_num, sauce_unit = Food.separate_num_unit(sauce_num)
+                    food_data = Food(
+                        recept_id=recept_id,
+                        recipe_name=recipe_name,
+                        author=author,
+                        good=good,
+                        recipe_url=recipe_url,
+                        browsing_num=browsing,
+                        people=ppl,
+                        cooking_time=time_item,
+                        recept_type=SAUCE,
+                        ingredients=sauce_name,
+                        quantity=sauce_num,
+                        unit=sauce_unit,
+                        recipe_upload_date=upload_date,
+                        crawl_datetime=crawl_datetime,
+                    )
+                    food_list.append(food_data)
         #### find sauce ingredients end ####
 
-        #### for converting the above info into pandas ####
-
-        recept_data = Food(
-            recipe_name=recipe_name,
-            author=author,
-            recipe_url=recipe_url,
-            recipe_upload_date=upload_date,
-            browsing_num=browsing,
-            good=good,
-            people=ppl,
-            cooking_time=time_item,
-            main_ingredients=ing_list,
-            sauce=sauce_list,
-            crawl_datetime=crawl_datetime,
-        )
-
+        ### for converting the above info into pandas ####
         columns = [
+            "recept_id",
             "recipe_name",
             "author",
             "recipe_url",
-            "recipe_upload_date",
             "browsing_num",
             "good",
             "people",
             "cooking_time",
-            "main_ingredients",
-            "sauce",
+            "recept_type",
+            "ingredients",
+            "quantity",
+            "unit",
+            "recipe_upload_date",
             "crawl_datetime",
         ]
 
-        data = [
-            [
-                recept_data.recipe_name,
-                recept_data.author,
-                recept_data.recipe_url,
-                recept_data.recipe_upload_date,
-                recept_data.browsing_num,
-                recept_data.good,
-                recept_data.people,
-                recept_data.cooking_time,
-                recept_data.main_ingredients,
-                recept_data.sauce,
-                recept_data.crawl_datetime,
+        data = []
+        for food in food_list:
+            food_obj = [
+                    food.recept_id,
+                    food.recipe_name,
+                    food.author,
+                    food.recipe_url,
+                    food.browsing_num,
+                    food.good,
+                    food.people,
+                    food.cooking_time,
+                    food.recept_type,
+                    food.ingredients,
+                    food.quantity,
+                    food.unit,
+                    food.recipe_upload_date,
+                    food.crawl_datetime,
 
-            ]
-        ]
+                ]
+            data.append(food_obj)
+
 
         recept_df = pd.DataFrame(data, columns=columns)
         print("=" * 60)
         print(recept_df)
+        print("=" * 60)
 
+        filename = "recept_data.csv"
+        recept_df.to_csv(filename, index=False, mode="w", encoding="utf-8")
+        print(f"{filename} has been saved successfully")
         #### for converting the above info into pandas end ####
 
         sleeptime = random.randint(2,5)
