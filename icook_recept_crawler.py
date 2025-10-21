@@ -322,6 +322,7 @@ def crawl_icook_recept(response):
 
 
 def main():
+    response = "https://icook.tw/recipes/350122"
     crawl_icook_recept(response)
 
 

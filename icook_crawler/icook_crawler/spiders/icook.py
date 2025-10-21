@@ -3,6 +3,9 @@ import scrapy
 from .icook_recept_parser import parse_icook_recipe
 from urllib.parse import  quote
 
+from scrapy.spidermiddlewares.httperror import HttpError
+from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
+
 class IcookSpider(scrapy.Spider):
     name = "icook"
     allowed_domains = ["icook.tw"]
@@ -27,13 +30,63 @@ class IcookSpider(scrapy.Spider):
         for link in recipe_links:
             # response.follow 會自動處理相對路徑 (例如 /recipes/480984)
             # 並要求 Scrapy 抓取這個連結，完成後呼叫 parse_recipe_detail 函式
-            yield response.follow(link, callback=self.parse_recipe_detail)
+            yield response.follow(link,
+                                  callback=self.parse_recipe_detail,
+                                  errback=self.handle_recipe_error,
+                                  meta={
+                                      "max_retry_times": 3
+                                  },
+                                  )
 
         # next page
         next_page_link = response.xpath('//a[@rel="next nofollow"]/@href').get()
         if next_page_link is not None:
             # 找到下一頁，要求 Scrapy 抓取它，並用「同一個 parse」函式處理
-            yield response.follow(next_page_link, callback=self.parse)
+            yield response.follow(
+                next_page_link,
+                callback=self.parse,
+                errback=self.handle_recipe_error,
+                meta = {
+                "max_retry_times": 1
+                },
+            )
+
+    def handle_recipe_error(self, failure):
+        """
+        This is a function will function only when errors happen
+        """
+        failed_request = failure.request
+
+        # 檢查 failure 是哪種類型
+        if failure.check(HttpError):
+            # HTTP 錯誤 (4xx, 5xx)
+            response = failure.value.response
+            self.logger.error(
+                f"HTTP Error {response.status} on URL: {response.url}"
+            )
+
+        elif failure.check(DNSLookupError):
+            # DNS 錯誤
+            self.logger.error(
+                f"DNS Lookup Error on URL: {failed_request.url}"
+            )
+
+        elif failure.check(TimeoutError, TCPTimedOutError):
+            # 超時錯誤
+            self.logger.error(
+                f"Timeout Error on URL: {failed_request.url}"
+            )
+
+        else:
+            # 其他所有類型的錯誤 (例如連線被拒)
+            self.logger.error(
+                f"Unhandled Error {failure.value} on URL: {failed_request.url}"
+            )
+
+        # 【重點】
+        # 我們只記錄 (log) 錯誤，但函式正常結束 (pass)
+        # Scrapy 會認為這個錯誤「已被處理」，於是爬蟲會繼續爬取下一個任務。
+        pass
 
     def parse_recipe_detail(self, response):
         # 呼叫 BS4 解析器函式
