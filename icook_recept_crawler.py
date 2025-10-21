@@ -108,14 +108,14 @@ class Food:
             return None, string
 
 
-def crawl_icook_recept():
+def crawl_icook_recept(response):
     """
     This function is to crawl the icook recipe page
     """
     recept_id = None
     recipe_name = str
     author = str
-    recipe_url = "https://icook.tw/recipes/482266"
+    recipe_url = response
     upload_date = datetime
     browsing = None
     good = None
@@ -305,12 +305,12 @@ def crawl_icook_recept():
 
 
         recept_df = pd.DataFrame(data, columns=columns)
-        print("=" * 60)
-        print(recept_df)
-        print("=" * 60)
+        # print("=" * 60)
+        # print(recept_df)
+        # print("=" * 60)
 
         filename = "recept_data.csv"
-        recept_df.to_csv(filename, index=False, mode="w", encoding="utf-8")
+        recept_df.to_csv(filename, index=False, mode="a", encoding="utf-8")
         print(f"{filename} has been saved successfully")
         #### for converting the above info into pandas end ####
 
@@ -322,7 +322,7 @@ def crawl_icook_recept():
 
 
 def main():
-    crawl_icook_recept()
+    crawl_icook_recept(response)
 
 
 if __name__ == '__main__':

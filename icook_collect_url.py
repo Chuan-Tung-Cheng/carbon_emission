@@ -8,6 +8,8 @@ import scrapy
 class IcookSpider(scrapy.Spider):
      name = 'icook'
      domain = ['icook.tw']
+     start_urls = ['https://icook.tw/search/%E7%87%89%E7%89%9B%E8%82%89/%E7%89%9B/']
+
 
 
 
