@@ -1,11 +1,25 @@
 import scrapy
 
 from .icook_recept_parser import parse_icook_recipe
+from urllib.parse import  quote
 
 class IcookSpider(scrapy.Spider):
     name = "icook"
     allowed_domains = ["icook.tw"]
     start_urls = ["https://icook.tw/search/%e7%82%92%e9%ab%98%e9%ba%97%e8%8f%9c%e4%b9%be/"]
+
+    def start_requests(self):
+        """
+        replace start_url, make users available to mine data in category page
+        """
+        # users can enter keyword by -a keyword="number", the number can refer to the category page: https://icook.tw/categories
+        search_keyword = getattr(self, "keyword", None)
+        # convert the keyword into the code that can be used for url
+        encoded_keyword = quote(search_keyword)
+        # concat
+        url = f"https://icook.tw/categories/{encoded_keyword}/"
+        # generate the first url that a spider requests
+        yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
         # find the all recipt links in target url
