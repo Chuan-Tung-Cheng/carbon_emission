@@ -6,18 +6,43 @@ from urllib.parse import  quote
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError, TimeoutError, TCPTimedOutError
 
-class IcookSpider(scrapy.Spider):
-    name = "icook"
+
+class IcookCategorySpider(scrapy.Spider):
+    name = "icook_category_usage"
     allowed_domains = ["icook.tw"]
+
+    # 【關鍵修改】
+    # 1. 新增 __init__ 方法，接收 keyword 參數
+    def __init__(self, keyword=None, *args, **kwargs):
+        super(IcookCategorySpider, self).__init__(*args, **kwargs)  # Scrapy 標準初始化
+
+        if keyword is None:
+            raise ValueError("必須提供 'keyword' 參數 (例如 -a keyword=...)")
+
+        self.search_keyword = keyword
+
+        # 2. 動態設定「專屬於這個 Spider 實例」的設定
+        #    我們在這裡動態設定 FEEDS (輸出檔案)
+        self.custom_settings = {
+            'FEEDS': {
+                # 檔案名稱將會是 "searchkey的內容_recipes.csv"
+                f'{self.search_keyword}_recipes.csv': {
+                    'format': 'csv',
+                    'encoding': 'utf8',
+                    'overwrite': True,
+                }
+            }
+        }
+
 
     def start_requests(self):
         """
         replace start_url, make users available to mine data in category page
         """
         # users can enter keyword by -a keyword="number", the number can refer to the category page: https://icook.tw/categories
-        search_keyword = getattr(self, "keyword", None)
+        # search_keyword = getattr(self, "keyword", None)
         # convert the keyword into the code that can be used for url
-        encoded_keyword = quote(search_keyword)
+        encoded_keyword = quote(self.search_keyword)
         # concat
         url = f"https://icook.tw/categories/{encoded_keyword}/"
         # generate the first url that a spider requests
@@ -29,13 +54,14 @@ class IcookSpider(scrapy.Spider):
         for link in recipe_links:
             # response.follow 會自動處理相對路徑 (例如 /recipes/480984)
             # 並要求 Scrapy 抓取這個連結，完成後呼叫 parse_recipe_detail 函式
-            yield response.follow(link,
-                                  callback=self.parse_recipe_detail,
-                                  errback=self.handle_recipe_error,
-                                  meta={
-                                      "max_retry_times": 3
-                                  },
-                                  )
+            yield response.follow(
+                link,
+                callback=self.parse_recipe_detail,
+                errback=self.handle_recipe_error,
+                meta={
+                    "max_retry_times": 3
+                },
+            )
 
         # next page
         next_page_link = response.xpath('//a[@rel="next nofollow"]/@href').get()

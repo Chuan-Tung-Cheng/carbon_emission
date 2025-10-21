@@ -3,7 +3,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
 # 1. 匯入您的 Spider
-from icook_crawler.spiders.icook import IcookSpider
+from icook_crawler.spiders.icook_category_usage import IcookCategorySpider
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
 
         # 迴圈呼叫 process.crawl()
         # Scrapy 會為每個關鍵字建立一個「獨立的」Spider 實例
-        process.crawl(IcookSpider, keyword=keyword)
+        process.crawl(IcookCategorySpider, keyword=keyword)
 
         # 注意：我們在這裡「不要」設定 FEEDS
         # 因為這會導致所有爬蟲都寫入同一個檔案
