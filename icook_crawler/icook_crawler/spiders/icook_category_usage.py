@@ -11,7 +11,6 @@ class IcookCategorySpider(scrapy.Spider):
     name = "icook_category_usage"
     allowed_domains = ["icook.tw"]
 
-    # 【關鍵修改】
     # 1. 新增 __init__ 方法，接收 keyword 參數
     def __init__(self, keyword=None, *args, **kwargs):
         super(IcookCategorySpider, self).__init__(*args, **kwargs)  # Scrapy 標準初始化
@@ -20,19 +19,6 @@ class IcookCategorySpider(scrapy.Spider):
             raise ValueError("必須提供 'keyword' 參數 (例如 -a keyword=...)")
 
         self.search_keyword = keyword
-
-        # 2. 動態設定「專屬於這個 Spider 實例」的設定
-        #    我們在這裡動態設定 FEEDS (輸出檔案)
-        self.custom_settings = {
-            'FEEDS': {
-                # 檔案名稱將會是 "searchkey的內容_recipes.csv"
-                f'{self.search_keyword}_recipes.csv': {
-                    'format': 'csv',
-                    'encoding': 'utf8',
-                    'overwrite': True,
-                }
-            }
-        }
 
 
     def start_requests(self):
