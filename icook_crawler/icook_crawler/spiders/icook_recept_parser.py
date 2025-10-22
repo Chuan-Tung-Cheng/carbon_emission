@@ -29,20 +29,20 @@ class Food:
     This class is to record how many things that need to be stored
     """
     def __init__(self,
-                 recept_id,
-                 recipe_name, # str
-                 author, # str
-                 good, # int
-                 recipe_url, # str
-                 browsing_num, # int only in icook
-                 people,  # int,
-                 cooking_time, # int
-                 recept_type, # str
-                 ingredients, # list
-                 quantity,  # int
-                 unit, # str
-                 recipe_upload_date, # datetime
-                 crawl_datetime, # datetime
+                 recept_id=None, # str | None
+                 recipe_name=None, # str | None
+                 author=None, # str | None
+                 good=None, # int | None
+                 recipe_url=None, # str | None
+                 browsing_num=None, # int | None
+                 people=None,  # int | None
+                 cooking_time=None, # int | None
+                 recept_type=None, # str | None
+                 ingredients=None, # list | None
+                 quantity=None,  # int | None
+                 unit=None, # str | None
+                 recipe_upload_date=None, # datetime | None
+                 crawl_datetime=datetime.now(), # datetime | None
                  ):
 
         self.recept_id = recept_id # pk
@@ -103,17 +103,15 @@ def parse_icook_recipe(scrapy_response):
     param: scrapy_response (This is Scrapy's response object, NOT a URL string)
     """
     ### define all values ###
-    recept_id = None
-    recipe_name = str
-    author = str
-    recipe_url = scrapy_response.url
-    upload_date = datetime
+    recipe_name = None
+    author = None
+    upload_date = None
     browsing = None
     good = None
-    ppl = None # means people
-    time_item = None
-    recept_type = None
-    quantity = 0
+    ppl = None
+    time = None
+    ing_name = None
+    quantity = None
     unit = None
     crawl_datetime = datetime.now()
 
@@ -121,19 +119,19 @@ def parse_icook_recipe(scrapy_response):
     soup = BeautifulSoup(scrapy_response.text, "lxml")
 
     #### find ID ####
-    recept_id = recipe_url.split("/")[-1]
+    recept_id = scrapy_response.url.split("/")[-1]
     #### find ID end ####
 
     #### find author ####
-    author = soup.find("a", attrs={"class": "author-name-link"})
-    if author: # if author exist
-        author = author.text.strip()
+    r_author = soup.find("a", attrs={"class": "author-name-link"})
+    if r_author:
+        author = r_author.text.strip()
     #### find author end ####
 
     #### find recipe name ####
-    recipe_name = soup.find("h1", attrs={"id": "recipe-name"})
-    if recipe_name:
-        recipe_name = recipe_name.text.strip()
+    r_recipe_name = soup.find("h1", attrs={"id": "recipe-name"})
+    if r_recipe_name:
+        recipe_name = r_recipe_name.text.strip()
     #### find recipe name end ####
 
     #### find upload date & browsing  ####
@@ -145,39 +143,42 @@ def parse_icook_recipe(scrapy_response):
         # regex datetime
         upload_date = datetime.date(datetime.strptime(upload_date, DATE_REGEX))
         # find browsing
-        browsing = upload_browsing.find("div").text.strip().replace(" ", "")[:-2]
-        if "萬" in browsing:
-            browsing = browsing[:-1]
-            browsing = int(browsing.replace(".", "")) * int((10000/10)) # unit is 10000 but remove the point
-        elif len(browsing) > 3:
-            browsing = int(browsing.replace(",", ""))
-        else:
-            browsing = int(browsing)
+        browsing = upload_browsing.find("div").text.strip().replace(" ", "")
+        # if "萬" in browsing:
+        #     browsing = browsing[:-1]
+        #     browsing = int(browsing.replace(".", "")) * int((10000/10)) # unit is 10000 but remove the point
+        # elif len(browsing) > 3:
+        #     browsing = int(browsing.replace(",", ""))
+        # else:
+        #     browsing = int(browsing)
     #### find upload  date& browsing end ####
 
     #### find good reputation ####
     """need to consider good reputation will increase or decrease"""
-    good = soup.find("span", attrs={"class": "stat-content bold"}).text.strip()
-    if good:
-        if "萬" in good:
-            good = good[:-1]
-            good = int(good.replace(".", "")) * int((10000 / 10))  # unit is 10000 but remove the point
-        elif len(good) > 3:
-            good = int(good.replace(",", ""))
-        else:
-            good = int(good)
+    r_good = soup.find("span", attrs={"class": "stat-content bold"})
+    if r_good:
+        good = r_good.text.strip()
+    # if good:
+    #     if "萬" in good:
+    #         good = good[:-1]
+    #         good = int(good.replace(".", "")) * int((10000 / 10))  # unit is 10000 but remove the point
+    #     elif len(good) > 3:
+    #         good = int(good.replace(",", ""))
+    #     else:
+    #         good = int(good)
     #### find good reputation end ####
 
     #### find people ####
-    ppl = soup.find("div", attrs={"class": "servings"})
-    if ppl:
-        ppl = int(ppl.find("span", attrs={"class": "num"}).text.strip())
+    r_ppl = soup.find("div", attrs={"class": "servings"})
+    if r_ppl:
+        ppl = r_ppl.text.strip()
     #### find people end ####
 
     #### find cooking time ####
-    time = soup.find("div", attrs={"class": "time-info info-block"})
-    if time:
-        time_item = int(time.find("span", attrs={"class": "num"}).text.strip())
+    r_time = soup.find("div", attrs={"class": "time-info info-block"})
+    if r_time:
+        time = r_time.text.strip()
+
     #### find cooking time end ####
 
     ### find main ingredients ####
@@ -187,27 +188,27 @@ def parse_icook_recipe(scrapy_response):
             ings = r_ing.find_all("li", attrs={"class": "ingredient"}) # list
             for ing in ings:
                 ing_name = ing.find("a", attrs={"class": "ingredient-search"}).text.strip()
-                ing_num = ing.find("div", attrs={"class": "ingredient-unit"}).text.strip()
+                quantity = ing.find("div", attrs={"class": "ingredient-unit"}).text.strip()
                 # separate the num and unit
-                ing_num, ing_unit = Food.separate_num_unit(ing_num)
-                # collect all info into an object, Food
-                food_data = Food(
-                                recept_id=recept_id,
-                                recipe_name=recipe_name,
-                                author=author,
-                                good=good,
-                                recipe_url=recipe_url,
-                                browsing_num=browsing,
-                                people=ppl,
-                                cooking_time=time_item,
-                                recept_type=MAIN,
-                                ingredients=ing_name,
-                                quantity=ing_num,
-                                unit=ing_unit,
-                                recipe_upload_date=upload_date,
-                                crawl_datetime=crawl_datetime,
-                                )
-                yield food_data
+                # ing_num, ing_unit = Food.separate_num_unit(ing_num)
+    # collect all info into an object, Food
+    food_data = Food(
+                    recept_id=recept_id,
+                    recipe_name=recipe_name,
+                    author=author,
+                    good=good,
+                    recipe_url=scrapy_response.url,
+                    browsing_num=browsing,
+                    people=ppl,
+                    cooking_time=time,
+                    recept_type=MAIN,
+                    ingredients=ing_name,
+                    quantity=quantity,
+                    unit=unit,
+                    recipe_upload_date=upload_date,
+                    crawl_datetime=crawl_datetime,
+                    )
+    yield food_data
     #### find main ingredients end ####
 
     #### find sauce ingredients ####
@@ -216,26 +217,26 @@ def parse_icook_recipe(scrapy_response):
         for r_sauce in r_sauces:
             sauces = r_sauce.find_all("li", attrs={"class": "ingredient"})
             for sauce in sauces:
-                sauce_name = sauce.find("a", attrs={"class": "ingredient-search"}).text.strip()
-                sauce_num = sauce.find("div", attrs={"class": "ingredient-unit"}).text.strip()
+                ing_name = sauce.find("a", attrs={"class": "ingredient-search"}).text.strip()
+                quantity = sauce.find("div", attrs={"class": "ingredient-unit"}).text.strip()
                 # separate the num and unit
-                sauce_num, sauce_unit = Food.separate_num_unit(sauce_num)
-                # collect all info into an object, Food
-                food_data = Food(
-                    recept_id=recept_id,
-                    recipe_name=recipe_name,
-                    author=author,
-                    good=good,
-                    recipe_url=recipe_url,
-                    browsing_num=browsing,
-                    people=ppl,
-                    cooking_time=time_item,
-                    recept_type=SAUCE,
-                    ingredients=sauce_name,
-                    quantity=sauce_num,
-                    unit=sauce_unit,
-                    recipe_upload_date=upload_date,
-                    crawl_datetime=crawl_datetime,
-                )
-            yield food_data
+                # sauce_num, sauce_unit = Food.separate_num_unit(sauce_num)
+    # collect all info into an object, Food
+    food_data = Food(
+        recept_id=recept_id,
+        recipe_name=recipe_name,
+        author=author,
+        good=good,
+        recipe_url=scrapy_response.url,
+        browsing_num=browsing,
+        people=ppl,
+        cooking_time=time,
+        recept_type=SAUCE,
+        ingredients=ing_name,
+        quantity=quantity,
+        unit=unit,
+        recipe_upload_date=upload_date,
+        crawl_datetime=crawl_datetime,
+    )
+    yield food_data
     #### find sauce ingredients end ####

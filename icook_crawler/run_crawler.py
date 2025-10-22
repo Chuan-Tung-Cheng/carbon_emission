@@ -1,4 +1,5 @@
 import os
+import sys
 # from scrapy.crawler import CrawlerProcess
 # from scrapy.utils.project import get_project_settings
 from pathlib import Path
@@ -9,19 +10,37 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 # OUTPUT_DIR = PROJECT_ROOT / 'output_csvs'
 
 # keyword
-SEARCH_KEYWORDS_LIST = [
-        "54", # 家常食材
-        "58", # 異國料理
-        "19", # 飲料冰品
-        "405", # 寶寶兒童
-        "437", # 快速省錢
-        "460", # 果醬醬料
-        "59", # 烹調器具
-        "352", # 功效
-        "31", # 季節節慶
-    ]
+# SEARCH_KEYWORDS_LIST = [
+#         "54", # 家常食材
+#         "58", # 異國料理
+#         "19", # 飲料冰品
+#         "405", # 寶寶兒童
+#         "437", # 快速省錢
+#         "460", # 果醬醬料
+#         "59", # 烹調器具
+#         "352", # 功效
+#         "31", # 季節節慶
+######## general ingredients ########
+#         "592", # 家常美味
+#         "593", # 烘焙專區
+#         "608", # 當季食材
+#         "395", # 瓜果
+#         "393", # 根莖
+#         "394", # 葉菜
+#         "660", # 豆類蔬菜
+#         "390", # 菌藻、菇類
+#         "2", # 五穀雜糧
+#         "6", # 水果
+#         "301", # 蛋
+#         "302", # 豆製品
+#         "3", # 海鮮
+#         "40", # 豬肉
+#         "38", # 雞肉
+#         "39", # 牛肉
+#         "41", # 羊肉
+#         "43", # 鴨肉
 
-def main():
+def main(search_from_outside):
 
     # 3. 取得專案設定
     # 此作法為效能考量，只需進入硬碟讀取一次，其餘用複製的
@@ -31,7 +50,7 @@ def main():
     os.chdir(PROJECT_ROOT)
 
     # 迴圈排程所有任務
-    for keyword in SEARCH_KEYWORDS_LIST:
+    for keyword in search_from_outside:
         print(f"排程任務: {keyword}")
 
         command = (
@@ -69,10 +88,9 @@ def main():
         #    Scrapy 引擎會啟動，並「同時」執行您剛剛排程的 4 個爬蟲
         # process.start()
 
-
-
     print("所有爬取任務已完成！")
 
 
 if __name__ == "__main__":
-    main()
+    search = sys.argv[1].split(" ")
+    main(search)
