@@ -36,8 +36,8 @@ def main():
 
         command = (
             f"scrapy crawl icook_category_usage "
-            f"-a keyword={keyword}"
-            f" -O output_csvs/icook_{keyword}.csv"
+            f"-a keyword={keyword} "
+            f"-O output_csvs/icook_{keyword}.csv"
         )
 
         print(f"執行{command}中")
