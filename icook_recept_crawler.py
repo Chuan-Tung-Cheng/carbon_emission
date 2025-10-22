@@ -309,7 +309,7 @@ def crawl_icook_recept(response):
         # print(recept_df)
         # print("=" * 60)
 
-        filename = "recept_data.csv"
+        filename = "recipe_sample_data.csv"
         recept_df.to_csv(filename, index=False, mode="a", encoding="utf-8")
         print(f"{filename} has been saved successfully")
         #### for converting the above info into pandas end ####
