@@ -192,7 +192,7 @@ def parse_icook_recipe(scrapy_response):
                 # separate the num and unit
                 # ing_num, ing_unit = Food.separate_num_unit(ing_num)
     # collect all info into an object, Food
-    food_data = Food(
+                food_data = Food(
                     recept_id=recept_id,
                     recipe_name=recipe_name,
                     author=author,
@@ -208,7 +208,7 @@ def parse_icook_recipe(scrapy_response):
                     recipe_upload_date=upload_date,
                     crawl_datetime=crawl_datetime,
                     )
-    yield food_data
+                yield food_data
     #### find main ingredients end ####
 
     #### find sauce ingredients ####
@@ -221,22 +221,22 @@ def parse_icook_recipe(scrapy_response):
                 quantity = sauce.find("div", attrs={"class": "ingredient-unit"}).text.strip()
                 # separate the num and unit
                 # sauce_num, sauce_unit = Food.separate_num_unit(sauce_num)
-    # collect all info into an object, Food
-    food_data = Food(
-        recept_id=recept_id,
-        recipe_name=recipe_name,
-        author=author,
-        good=good,
-        recipe_url=scrapy_response.url,
-        browsing_num=browsing,
-        people=ppl,
-        cooking_time=time,
-        recept_type=SAUCE,
-        ingredients=ing_name,
-        quantity=quantity,
-        unit=unit,
-        recipe_upload_date=upload_date,
-        crawl_datetime=crawl_datetime,
-    )
-    yield food_data
+                 # collect all info into an object, Food
+                food_data = Food(
+                    recept_id=recept_id,
+                    recipe_name=recipe_name,
+                    author=author,
+                    good=good,
+                    recipe_url=scrapy_response.url,
+                    browsing_num=browsing,
+                    people=ppl,
+                    cooking_time=time,
+                    recept_type=SAUCE,
+                    ingredients=ing_name,
+                    quantity=quantity,
+                    unit=unit,
+                    recipe_upload_date=upload_date,
+                    crawl_datetime=crawl_datetime,
+                )
+                yield food_data
     #### find sauce ingredients end ####
