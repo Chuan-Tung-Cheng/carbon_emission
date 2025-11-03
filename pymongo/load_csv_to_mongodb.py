@@ -1,40 +1,12 @@
-import csv
+import csv, glob, os, sys
 import pymongo as mon
-import os
-import glob
-from dotenv import load_dotenv
+import utils.mongodb_connection as mongo
 
 """Upload "csv files" into mongodb"""
 
-"""0. upload env variables"""
-load_dotenv() # MUST
-
-USERNAME=os.getenv("MONGO_USERNAME")
-PASSWORD=os.getenv("MONGO_PASSWORD")
-HOST=os.getenv("MONGO_HOST")
-PORT=os.getenv("MONGO_PORT")
-AUTH_DB=os.getenv("MONGO_AUTH_DB")
 
 BATCH_SIZE = 30 # upload in a batch of 30
 
-
-def connect_to_mongodb():
-    """1. connect to MongoDB"""
-    connection_string = f"mongodb://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/?authSource={AUTH_DB}"
-    try:
-        connection = mon.MongoClient(connection_string) # connecting
-        print(connection.server_info())
-        print("Authentication successful")
-        return connection
-
-    except Exception as e:
-        print(f"Authentication failed: {e}")
-        return e
-
-def find_csv_file_path(root_dir):
-    """2. find csv path"""
-    csv_files = f"/Users/cct/Downloads/{root_dir}/"
-    return csv_files
 
 def upload_to_mongodb(connection, file_path):
     """3. upload data to mongodb"""
@@ -71,21 +43,15 @@ def upload_to_mongodb(connection, file_path):
     {total_amount} data has been uploaded
     """)
 
-def close_connection(db_connection):
-    """4. close mongodb"""
-    print("All data has been uploaded and mongodb is closed")
-    db_connection.close()
-
 
 if __name__ == "__main__":
     """1. connect to MongoDB"""
     # get connected object, called connection
-    client = connect_to_mongodb()
+    client = mongo.connect_to_mongodb()
     """2. find csv path"""
     # input files' root directory
-    pr_root_dir = input("root dir: ")
-    csv_path = find_csv_file_path(pr_root_dir)
+    file_dir = sys.argv[1]
     """3. upload data to mongodb"""
-    upload_to_mongodb(client, csv_path)
+    upload_to_mongodb(client, file_dir)
     """4. close mongodb"""
-    close_connection(client)
+    mongo.close_connection(client)
