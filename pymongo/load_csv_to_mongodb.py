@@ -1,5 +1,4 @@
 import csv, glob, os, sys
-import pymongo as mon
 import utils.mongodb_connection as mongo
 
 """Upload "csv files" into mongodb"""
@@ -47,7 +46,7 @@ def upload_to_mongodb(connection, file_path):
 if __name__ == "__main__":
     """1. connect to MongoDB"""
     # get connected object, called connection
-    client = mongo.connect_to_mongodb()
+    client = mongo.connect_to_local_mongodb()
     """2. find csv path"""
     # input files' root directory
     file_dir = sys.argv[1]

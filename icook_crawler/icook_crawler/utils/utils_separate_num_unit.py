@@ -21,9 +21,7 @@ PATTERN_STR_VERBOSE_WITH_NUMBERS = r"""
         # |
         
     ) # --- Group 1 結束 ---
-    
     (?: # 單位部分 (可選)
-        \s* # 0 或多個空格
         ( # Group 2: 捕獲「單位」本身
             [a-zA-Z%°\.一-龥]+   # 英文/符號/中文 
         ) # --- Group 2 結束 ---
@@ -32,18 +30,18 @@ PATTERN_STR_VERBOSE_WITH_NUMBERS = r"""
 
 PATTERN_STR_VERBOSE_WITH_NUMBERS_RANGE = r"""
     ( # Group 1: 捕獲整個「數字」部分
-        (?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)[-~～](?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)
+        (?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)[-~～到至](?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)
         # 中文表達分數區間 (e.g., 三分之一-~～三分之二)
         |
-        (?:[半一二三四五六七八九十百千萬]+)[-~～](?:[半一二三四五六七八九十百千萬]+) # 中文表達分數區間 (e.g., 二-~～三)
+        (?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)[-~～到至](?:[一二三四五六七八九十百千萬]+)
         |
-        (?:\d+\/\d+)[~-～](?:\d+\/\d+)                    # 範圍 (e.g., 1/3-1/2)
+        (?:[半一二三四五六七八九十百千萬]+)[-~～到至](?:[半一二三四五六七八九十百千萬]+) # 中文表達分數區間 (e.g., 二-~～三)
         |
-        (?:\d+(?:\.\d+)?)[~-～](?:\d+(?:\.\d+)?)          # 範圍 (e.g., 2-3)
+        (?:(?:\d+\/\d+[-~～](?:\d+\/\d+)))                # 範圍 (e.g., 1/3-1/2)
+        |
+        (?:(?:\d+(?:\.\d+)?[-~～](?:\d+(?:\.\d+)?)))          # 範圍 (e.g., 2-3 (1.1-1.2))
     ) # --- Group 1 結束 ---
-    
-    (?: # 單位部分 (可選)
-        \s* # 0 或多個空格
+    ( # 單位部分 (可選)
         ( # Group 2: 捕獲「單位」本身
             [a-zA-Z%°\.一-龥]+   # 英文/符號/中文 
         ) # --- Group 2 結束 ---
@@ -117,17 +115,23 @@ def get_num_in_field_quantity(text: str) -> float | str | None:
         if any(sep in text for sep in ("~", "-", "～")):
             matches = COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
             if matches is not None:
-                return match_num_with_digit(matches)
+                return match_num_with_digit_range(matches)
         else:
             matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
             if matches is not None:
                 return match_num_with_digit(matches)
-    else: # check if text has chinese-character numbers
+    else: # first filter: check if text has chinese-character numbers
         have_char_num = have_chinese_char_num(text)
         if have_char_num:
-            matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
-            if matches is not None:
-                return match_num_with_chinese(matches)
+            # second filter: check if text has "~", "-", "～"
+            if any(sep in text for sep in ("~", "-", "～")):
+                matches = COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
+                if matches is not None:
+                    return match_num_with_digit_range(matches)
+            else:
+                matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
+                if matches is not None:
+                    return match_num_with_chinese(matches)
     return None
 
 
@@ -184,10 +188,9 @@ def match_num_with_digit_range(matches) -> float | Decimal | str | None:
     # 1-2(0.5-0.8), 1/3 - 1/2, 一 ~ 二, 三分之一 ~ 二分之一
     for m in matches: # activate this iterate generator
             try:
-
-                if m.group(1).isdigit(): # first filter -> 1-2 kg, 1/2-1/3 kg
+                if any(num.isdigit() for num in m.group(1)): # first filter -> 1-2 kg, 1/2-1/3 kg
                     if not m.group(1).find("/"): # second filter -> 1-2 kg
-                        range_num = re.split(r"[-~～]", m.group(1))
+                        range_num = re.split(r"[-~～至到]", m.group(1))
                         first_num = Decimal(range_num[0])
                         last_num = Decimal(range_num[-1])
                         average = (first_num + last_num) / 2
@@ -195,7 +198,7 @@ def match_num_with_digit_range(matches) -> float | Decimal | str | None:
                     else: # second filter -> 1/2-1/3 kg
                         pass
                 else: # first filter -> 一～二 kg, 三分之一 - 二分之一 kg
-                    range_num = re.split(r"[-~～]", m.group(1))
+                    range_num = re.split(r"[-~～至到]", m.group(1))
 
                     m.group(1).split("-")
             except ValueError:
@@ -266,12 +269,12 @@ def match_unit_in_field_quantity(matches) -> str | None:
         return m.group(2)
     return None
 
-# "三分之二～三分之二公斤"
+# "三分之二～三分之二公斤", "1-2公斤", "1/3-1/2公斤", "1.2-2.1公斤", "三分之二～一公斤", "三分之二至三分之二公斤"
 # ok: "1.5公斤",  "三公斤", "1kg", "1/3公斤"
 def test():
-    text = ["三分之二-三分之二公斤"]
+    text = ["三分之二～三分之二公斤", "1-2公斤", "1/3-1/2公斤", "1.2-2.1公斤", "三分之二～一公斤", "三分之二至三分之二公斤"]
     for text in text:
-        matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text)
+        matches = COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
         print("=" * 30)
         for m in matches:
             print(m.group(0))
