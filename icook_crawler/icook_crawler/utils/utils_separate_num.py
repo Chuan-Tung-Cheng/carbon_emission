@@ -125,6 +125,8 @@ def get_num_in_field_quantity(text: str) -> float | str | None:
                 matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
                 if matches is not None:
                     return match_num_with_chinese(matches)
+        else: # process "適量", "少許"
+            pass
     return None
 
 def have_chinese_char_num(text) -> bool:
