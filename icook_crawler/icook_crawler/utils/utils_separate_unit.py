@@ -94,3 +94,39 @@ def blank_comma_removal(text: str) -> str:
         text = text.replace(",", "")
         return text
     return text
+
+"""The below is to get the unit part"""
+def get_unit_in_field_quantity(text: str) -> float | str | None:
+    """
+    Separate the number and thr unit, and mainly fetch the number
+    """
+    # clarify if it only has number and
+    categorize_data()
+
+    # # first filter: check if text has digits
+    # have_num = any(num.isdigit() for num in text)
+    # if have_num: # check if text has numerics
+    #     # second filter: check if text has "~", "-", "～"
+    #     if any(sep in text for sep in ("~", "-", "～", "至", "_")):
+    #         matches = COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
+    #         if matches is not None:
+    #             return match_num_with_digit_range(matches)
+    #     else:
+    #         matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
+    #         if matches is not None:
+    #             return match_num_with_digit(matches)
+    # else: # first filter: check if text has chinese-character numbers
+    #     have_char_num = have_chinese_char_num(text)
+    #     if have_char_num:
+    #         # second filter: check if text has "~", "-", "～"
+    #         if any(sep in text for sep in ("~", "-", "～", "至", "_")):
+    #             matches = COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
+    #             if matches is not None:
+    #                 return match_num_with_chinese_range(matches)
+    #         else:
+    #             matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
+    #             if matches is not None:
+    #                 return match_num_with_chinese(matches)
+    #     else: # process "適量", "少許"
+    #         pass
+    # return None
