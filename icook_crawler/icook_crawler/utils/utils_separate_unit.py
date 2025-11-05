@@ -82,18 +82,7 @@ CHAR_NUM_MAPS ={
 }
 
 
-def blank_comma_removal(text: str) -> str:
-    """
-    Remove the comma symbol.
-    Here it will also remove blanks.
-    """
-    text = text.strip()
-    text = text.replace(" ", "")
 
-    if "," in text:
-        text = text.replace(",", "")
-        return text
-    return text
 
 """The below is to get the unit part"""
 def get_unit_in_field_quantity(text: str) -> float | str | None:

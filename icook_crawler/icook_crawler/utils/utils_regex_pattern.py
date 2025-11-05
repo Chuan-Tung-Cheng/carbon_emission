@@ -19,6 +19,11 @@ PATTERN_STR_VERBOSE_WITH_NUMBERS = r"""
     )? # 整個單位部分可選
     """
 
+# 100g or 1.5g
+PATTERN_STR_VERBOSE_WITH_DIGITAL_NUMBER_UNIT = r"""
+    )
+"""
+
 PATTERN_STR_VERBOSE_WITH_NUMBERS_RANGE = r"""
     ( # Group 1: 捕獲整個「數字」部分
         (?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)[-~～到至](?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)
@@ -70,3 +75,15 @@ CHAR_NUM_MAPS = {
     "九": 9,
     "十": 10,
 }
+
+def blank_comma_removal(text: str) -> str:
+    """
+    Remove the comma symbol.
+    Here it will also remove blanks.
+    """
+    text = text.replace("\n", "").replace("\t","").strip()
+
+    if "," in text:
+        text = text.replace(",", "")
+        return text
+    return text
