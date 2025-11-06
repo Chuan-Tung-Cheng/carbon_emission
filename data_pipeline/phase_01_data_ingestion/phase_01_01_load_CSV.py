@@ -3,7 +3,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
-CSV_DIR = os.getenv("CSV_DIR")
+CSV_DIR = os.getenv("CSV_DIR_2")
 
 def find_csv_file_dir():
     """return generator of csv file path"""

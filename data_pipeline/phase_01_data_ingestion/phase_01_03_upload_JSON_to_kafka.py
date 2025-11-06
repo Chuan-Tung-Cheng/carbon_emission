@@ -3,7 +3,7 @@ import time, os, sys
 from phase_01_02_convert_csv_to_JSON import convert_csv_to_dict
 from confluent_kafka import Producer
 
-TOPIC_NAME = os.getenv("TOPIC_NAME")
+TOPIC_NAME = os.getenv("TOPIC_NAME_2")
 
 def error_cb(err):
     print('Error: %s' % err)
