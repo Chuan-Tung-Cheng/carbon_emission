@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     # 步驟3. 指定想要發佈訊息的topic名稱
     topic_name = TOPIC_NAME
-    msg_count = 0  # 0
+    msg_count = 0
     time_start = int(round(time.time() * 1000))
     try:
         print('Start sending messages ...')
