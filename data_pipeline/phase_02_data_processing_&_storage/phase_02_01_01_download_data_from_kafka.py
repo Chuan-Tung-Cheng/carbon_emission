@@ -1,5 +1,4 @@
-import os
-import sys
+import json, os, sys
 
 from confluent_kafka import Consumer, KafkaException, KafkaError
 from dotenv import load_dotenv
@@ -7,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 GROUP_ID = os.getenv("GROUP_ID")
 TOPIC_NAME = os.getenv("TOPIC_NAME")
+BATCH_SIZE = 2000
 
 # 用來接收從Consumer instance發出的error訊息
 def error_cb(err):
@@ -33,18 +33,21 @@ def print_commit_result(err, partitions):
                 )
             )
 
-
-if __name__ == '__main__':
+def consumer_raw_data_to_mongodb():
+    """
+    retrieve data from kafka topic and insert into mongodb
+    return: list of dict (data to insert)
+    """
     # 步驟1.設定要連線到Kafka集群的相關設定
     # Consumer configuration
     # See https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     props = {
-        'bootstrap.servers': 'localhost:9092',         # Kafka集群在那裡? (置換成要連接的Kafka集群)
-        'group.id': GROUP_ID,                          # ConsumerGroup的名稱 (置換成你/妳的學員ID)
-        'auto.offset.reset': 'earliest',               # 是否從這個ConsumerGroup尚未讀取的partition/offset開始讀
-        'enable.auto.commit': False,                   # 是否啟動自動commit
-        'on_commit': print_commit_result,              # 設定接收commit訊息的callback函數
-        'error_cb': error_cb                           # 設定接收error訊息的callback函數
+        'bootstrap.servers': 'localhost:9092',  # Kafka集群在那裡? (置換成要連接的Kafka集群)
+        'group.id': GROUP_ID,  # ConsumerGroup的名稱 (置換成你/妳的學員ID)
+        'auto.offset.reset': 'earliest',  # 是否從這個ConsumerGroup尚未讀取的partition/offset開始讀
+        'enable.auto.commit': False,  # 是否啟動自動commit
+        'on_commit': print_commit_result,  # 設定接收commit訊息的callback函數
+        'error_cb': error_cb  # 設定接收error訊息的callback函數
     }
 
     # 步驟2. 產生一個Kafka的Consumer的實例
@@ -57,9 +60,11 @@ if __name__ == '__main__':
     # 步驟5. 持續的拉取Kafka有進來的訊息
     try:
         while True:
-            records_pulled = False  # 用來檢查是否有有效的record被取出來
+            # build a container to save consume data
+            insert_buffer = []
+
             # 請求Kafka把新的訊息吐出來
-            records = consumer.consume(num_messages=500, timeout=1.0)  # 批次讀取
+            records = consumer.consume(num_messages=BATCH_SIZE, timeout=1.0)  # 批次讀取
             if not records:
                 continue
 
@@ -81,7 +86,6 @@ if __name__ == '__main__':
 
                     else:
                         raise KafkaException(record.error())
-
                     continue
 
                 # ** 在這裡進行商業邏輯與訊息處理 **
@@ -89,17 +93,33 @@ if __name__ == '__main__':
                 topic = record.topic()
                 partition = record.partition()
                 offset = record.offset()
-                timestamp = record.timestamp()
+                # timestamp = record.timestamp()
                 # 取出msgKey與msgValue
-                msgKey = try_decode_utf8(record.key())
-                msgValue = try_decode_utf8(record.value())
+                # msgKey = try_decode_utf8(record.key())
 
-                # 秀出metadata與msgKey & msgValue訊息
-                print('{}-{}-{} : ({} , {})'.format(
-                    topic, partition, offset, msgKey, msgValue
-                ))
+                try:
+                    msg_value = try_decode_utf8(record.value())
+                    document = json.loads(msg_value)
+                except Exception as e:
+                    print(f"Error : {e}")
+                    continue
 
-                consumer.commit(record)  # 非同步的commit
+                document["_id"] = f"{topic}-{partition}-{offset}"
+                document["_kafka_meta"] = {
+                    "topic": topic,
+                    "partition": partition,
+                    "offset": offset
+                }
+
+                insert_buffer.append(document)
+                if len(insert_buffer) >= BATCH_SIZE:
+                    tem_buffer = insert_buffer
+                    consumer.commit(record)  # 非同步的commit
+                    return tem_buffer
+
+            return insert_buffer
+
+
 
     except KeyboardInterrupt as e:
         sys.stderr.write('Aborted by user\n')
