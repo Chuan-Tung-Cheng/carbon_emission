@@ -1,121 +1,72 @@
-import re
-
-from decimal import Decimal, ROUND_HALF_UP
-
-"""
-README:
-This util is to process the filed of quantity and it mainly separate the values into the number part and the unit part.
-Basically, The data type of the number part is decimal; the unit part is string 
-"""
-
-"""The below is constant"""
-PATTERN_STR_VERBOSE_WITH_NUMBERS = r"""
-    ( # Group 1: 捕獲整個「數字」部分
-        (?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)    # 中文表達分數 (e.g., 三分之二)
-        |
-        (?:\d+\/\d+)                                    # 分數 (e.g., 1/2)
-        | 
-        (?:[半一二三四五六七八九十百千萬]+)                  # 中文數字 (e.g., 一)
-        | 
-        (?:\d+(?:\.\d+)?)                               # 整數/小數 (e.g., 200, 0.5)
-        # |
-        
-    ) # --- Group 1 結束 ---
-    (?: # 單位部分 (可選)
-        ( # Group 2: 捕獲「單位」本身
-            [a-zA-Z%°\.一-龥]+   # 英文/符號/中文 
-        ) # --- Group 2 結束 ---
-    )? # 整個單位部分可選
-    """
-
-PATTERN_STR_VERBOSE_WITH_NUMBERS_RANGE = r"""
-    ( # Group 1: 捕獲整個「數字」部分
-        (?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)[-~～到至](?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)
-        # 中文表達分數區間 (e.g., 三分之一-~～三分之二)
-        |
-        (?:[一二三四五六七八九十百千萬]+)分之(?:[一二三四五六七八九十百千萬]+)[-~～到至](?:[一二三四五六七八九十百千萬]+)
-        |
-        (?:[半一二三四五六七八九十百千萬]+)[-~～到至](?:[半一二三四五六七八九十百千萬]+) # 中文表達分數區間 (e.g., 二-~～三)
-        |
-        (?:(?:\d+(?:\/\d+)?[-~～_](?:\d+(?:\/\d+)?)))                    # 範圍 (e.g., 1/3-1/2)
-        |
-        (?:(?:\d+(?:\.\d+)?[-~～_](?:\d+(?:\.\d+)?)))          # 範圍 (e.g., 2-3 (1.1-1.2))
-    ) # --- Group 1 結束 ---
-    ( # 單位部分 (可選)
-        ( # Group 2: 捕獲「單位」本身
-            [a-zA-Z%°\.一-龥]+   # 英文/符號/中文 
-        ) # --- Group 2 結束 ---
-    )? # 整個單位部分可選
-"""
-
-# PATTERN_STR_VERBOSE_WITHOUT_NUMBERS = r"""
-#     # 直接選單位
-#     (\b\w+\b)   # 完全沒數字 (e.g., 適量))
-#     """
-
-# Compiled pattern with numbers
-COMPILED_PATTERN_WITH_NUMBERS = re.compile(
-    PATTERN_STR_VERBOSE_WITH_NUMBERS,
-    re.VERBOSE
-)
-
-COMPILED_PATTERN_WITH_NUMBERS_RANGE = re.compile(
-    PATTERN_STR_VERBOSE_WITH_NUMBERS_RANGE,
-    re.VERBOSE
-)
+import utils_regex_pattern as rep
+from utils_separate_num import have_chinese_char_num
 
 
-# convert the characters with the meaning of number to the relative numeric numbers
-CHAR_NUM_MAPS ={
-    "零": 0,
-    "半": 0.5,
-    "一": 1,
-    "二": 2,
-    "三": 3,
-    "四": 4,
-    "五": 5,
-    "六": 6,
-    "七": 7,
-    "八": 8,
-    "九": 9,
-    "十": 10,
-}
-
-
-
-
-"""The below is to get the unit part"""
-def get_unit_in_field_quantity(text: str) -> float | str | None:
+"""The below is to get the number part"""
+def get_unit_in_field_quantity(text: str) -> str | None:
     """
     Separate the number and thr unit, and mainly fetch the number
     """
-    # clarify if it only has number and
-    categorize_data()
 
-    # # first filter: check if text has digits
-    # have_num = any(num.isdigit() for num in text)
-    # if have_num: # check if text has numerics
-    #     # second filter: check if text has "~", "-", "～"
-    #     if any(sep in text for sep in ("~", "-", "～", "至", "_")):
-    #         matches = COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
-    #         if matches is not None:
-    #             return match_num_with_digit_range(matches)
-    #     else:
-    #         matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
-    #         if matches is not None:
-    #             return match_num_with_digit(matches)
-    # else: # first filter: check if text has chinese-character numbers
-    #     have_char_num = have_chinese_char_num(text)
-    #     if have_char_num:
-    #         # second filter: check if text has "~", "-", "～"
-    #         if any(sep in text for sep in ("~", "-", "～", "至", "_")):
-    #             matches = COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
-    #             if matches is not None:
-    #                 return match_num_with_chinese_range(matches)
-    #         else:
-    #             matches = COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
-    #             if matches is not None:
-    #                 return match_num_with_chinese(matches)
-    #     else: # process "適量", "少許"
-    #         pass
-    # return None
+    have_digit_num = any(num.isdigit() for num in text)
+    # first filter: check if text has digits
+    if have_digit_num: # with digits
+        # second filter: check if the value has a range
+        if any(sep in text for sep in ("~", "-", "～", "至", "_")):
+            # third filter: check if the value is a fraction
+            if any(sep in text for sep in "/"):
+                matches = rep.CMP_PATTERN_WITH_DIGITAL_FRACTION_RANGE.finditer(text)
+                if matches is not None:
+                    return match_unit(matches)
+            else: # range without fraction
+                matches = rep.CMP_PATTERN_WITH_DIGITAL_RANGE.finditer(text)
+                if matches is not None:
+                    return match_unit(matches)
+
+        else: # not a range
+            if any(sep in text for sep in "/"): # a fraction
+                matches = rep.CMP_PATTERN_WITH_DIGITAL_FRACTION_WITHOUT_RANGE.finditer(text) # bool
+                if matches is not None:
+                    return match_unit(matches)
+            else: # not a fraction
+                matches = rep.CMP_PATTERN_WITH_DIGITAL_WITHOUT_RANGE.finditer(text)
+                if matches is not None:
+                    return match_unit(matches)
+
+    elif have_chinese_char_num(text): # without digits, but with Chinese characters that stand for number
+        # second filter: check if the value has a range
+        if any(sep in text for sep in ("~", "-", "～", "至", "_")):
+            # third filter: check if the value is a fraction
+            if any(sep in text for sep in "分之"): # a fraction
+                matches = rep.CMP_PATTERN_WITH_CHINESE_FRACTION_RANGE.finditer(text)
+                if matches is not None:
+                    return match_unit(matches)
+            else: # not a fraction
+                matches = rep.CMP_PATTERN_WITH_CHINESE_RANGE.finditer(text)
+                if matches is not None:
+                    return match_unit(matches)
+        else: # not has a range
+            if any(sep in text for sep in "分之"): # a fraction
+                matches = rep.CMP_PATTERN_WITH_CHINESE_FRACTION_WITHOUT_RANGE.finditer(text) # bool
+                if matches is not None:
+                    return match_unit(matches)
+            else: # not a fraction
+                matches = rep.CMP_PATTERN_WITH_CHINESE_WITHOUT_RANGE.finditer(text)  # bool
+                if matches is not None:
+                    return match_unit(matches)
+    return None
+
+def match_unit(matches) ->  str | None:
+    """
+    extract num part of digits
+    param matches: Iterator[Match[str]]
+    """
+    for m in matches: # activate this iterate generator
+        return m.group(2)
+    return None
+
+# if __name__ == "__main__":
+#     tests = ["1kg", "1.2kg", "1-2 kg", "1/2-1kg","1/3-1/2kg", "1.1-1.2kg", "一kg", "一～二kg", "三分之一~二分之一公斤"]
+#     for test in tests:
+#         ans = get_unit_in_field_quantity(test)
+#         print(ans, type(ans))
