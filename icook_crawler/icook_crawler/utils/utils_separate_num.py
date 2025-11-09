@@ -9,20 +9,6 @@ Basically, The data type of the number part is decimal; the unit part is string
 """
 
 
-def blank_comma_removal(text: str) -> str:
-    """
-    Remove the comma symbol.
-    Here it will also remove blanks.
-    """
-    text = text.strip()
-    text = text.replace(" ", "")
-
-    if "," in text:
-        text = text.replace(",", "")
-        return text
-    return text
-
-
 """The below is to get the number part"""
 def get_num_in_field_quantity(text: str) -> float | str | None:
     """
@@ -32,29 +18,49 @@ def get_num_in_field_quantity(text: str) -> float | str | None:
     have_digit_num = any(num.isdigit() for num in text)
     # first filter: check if text has digits
     if have_digit_num: # with digits
-        # second filter: check if text has "~", "-", "～"
+        # second filter: check if the value has a range
         if any(sep in text for sep in ("~", "-", "～", "至", "_")):
-            matches = rep.COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
-            if matches is not None:
-                return match_num_with_digit_range(matches)
-        else:
-            matches = rep.COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
-            if matches is not None:
-                return match_num_with_digit(matches)
-    else: # without digits
-        have_char_num = have_chinese_char_num(text)
-        if have_char_num:
-            # second filter: check if text has "~", "-", "～"
-            if any(sep in text for sep in ("~", "-", "～", "至", "_")):
-                matches = rep.COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
+            # third filter: check if the value is a fraction
+            if any(sep in text for sep in "/"):
+                matches = rep.CMP_PATTERN_WITH_DIGITAL_FRACTION_RANGE.finditer(text)
+                if matches is not None:
+                    return match_num_with_digit_range(matches)
+            else: # range without fraction
+                matches = rep.CMP_PATTERN_WITH_DIGITAL_RANGE.finditer(text)
+                if matches is not None:
+                    return match_num_with_digit_range(matches)
+
+        else: # not a range
+            if any(sep in text for sep in "/"): # a fraction
+                matches = rep.CMP_PATTERN_WITH_DIGITAL_FRACTION_WITHOUT_RANGE.finditer(text) # bool
+                if matches is not None:
+                    return match_num_with_digit(matches)
+            else: # not a fraction
+                matches = rep.CMP_PATTERN_WITH_DIGITAL_WITHOUT_RANGE.finditer(text)
+                if matches is not None:
+                    return match_num_with_digit(matches)
+
+    elif have_chinese_char_num(text): # without digits, but with Chinese characters that stand for number
+        # second filter: check if the value has a range
+        if any(sep in text for sep in ("~", "-", "～", "至", "_")):
+            # third filter: check if the value is a fraction
+            if any(sep in text for sep in "分之"): # a fraction
+                matches = rep.CMP_PATTERN_WITH_CHINESE_FRACTION_RANGE.finditer(text)
                 if matches is not None:
                     return match_num_with_chinese_range(matches)
-            else:
-                matches = rep.COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
+            else: # not a fraction
+                matches = rep.CMP_PATTERN_WITH_CHINESE_RANGE.finditer(text)
+                if matches is not None:
+                    return match_num_with_chinese_range(matches)
+        else: # not has a range
+            if any(sep in text for sep in "分之"): # a fraction
+                matches = rep.CMP_PATTERN_WITH_CHINESE_FRACTION_WITHOUT_RANGE.finditer(text) # bool
                 if matches is not None:
                     return match_num_with_chinese(matches)
-        else: # process "適量", "少許"
-            pass
+            else: # not a fraction
+                matches = rep.CMP_PATTERN_WITH_CHINESE_WITHOUT_RANGE.finditer(text)  # bool
+                if matches is not None:
+                    return match_num_with_chinese(matches)
     return None
 
 def get_unit_in_field_quantity(text: str) -> float | str | None:
@@ -66,7 +72,7 @@ def get_unit_in_field_quantity(text: str) -> float | str | None:
     if have_num: # check if text has numerics
         # second filter: check if text has "~", "-", "～"
         if any(sep in text for sep in ("~", "-", "～", "至", "_")):
-            matches = rep.COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
+            matches = rep.CMP_PATTERN_WITH_DIGITAL_RANGE.finditer(text)
             if matches is not None:
                 return match_unit(matches)
         else:
@@ -107,7 +113,7 @@ def match_num_with_digit(matches) -> float | Decimal | str | None:
     for m in matches: # activate this iterate generator
         try:
             """when value is presented as an integer or an integer with decimal, such as 1 or 1.5"""
-            number_part = Decimal(float(m.group(1)))
+            number_part = Decimal(float(m.group(1))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             return number_part
 
         except ValueError:
@@ -153,7 +159,7 @@ def match_num_with_digit_range(matches) -> float | Decimal | str | None:
                     range_num = rep.re.split(r"[-~～至到_]", m.group(1))
                     first_num = Decimal(range_num[0])
                     last_num = Decimal(range_num[-1])
-                    average = (first_num + last_num) / 2
+                    average = Decimal((first_num + last_num) / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                     return average
                 else: # second filter -> 1/2-1/3 kg
                     range_num = rep.re.split(r"[-~～至到_]", m.group(1))
@@ -165,7 +171,7 @@ def match_num_with_digit_range(matches) -> float | Decimal | str | None:
                         front = Decimal(first_fraction)
                     second_fraction = range_num[-1]
                     if "/" in second_fraction:
-                        behind_fraction = list(map(int, first_fraction.split("/")))
+                        behind_fraction = list(map(int, second_fraction.split("/")))
                         behind = Decimal(behind_fraction[0] / behind_fraction[-1])
                     else:
                         behind = Decimal(second_fraction)
@@ -199,15 +205,15 @@ def match_num_with_chinese(matches) -> float | Decimal | str | None:
             char_fraction[0] = denominator(分母)
             """
             try:
-                numerator = Decimal(char_fraction[-1])
-                denominator = Decimal(char_fraction[0])
+                numerator = Decimal(rep.CHAR_NUM_MAPS[char_fraction[-1]])
+                denominator = Decimal(rep.CHAR_NUM_MAPS[char_fraction[0]])
                 number_part = (numerator / denominator).quantize(
                     Decimal("0.01"),
                     rounding=ROUND_HALF_UP,
                 )
                 return number_part
             except ValueError:
-                return m.group(1)
+                return None
     return None
 
 def match_num_with_chinese_range(matches) -> float | Decimal | str | None:
@@ -262,3 +268,10 @@ def match_num_with_chinese_range(matches) -> float | Decimal | str | None:
         except ValueError as e:
             print(e)
     return None
+
+# "1kg", "1.2kg", "1-2 kg", "1/2-1kg","1/3-1/2kg", "1.1-1.2kg", "一kg", "一～二kg", "三分之一~二分之一公斤"
+# if __name__ == "__main__":
+#     tests = ["三分之一~二分之一公斤"]
+#     for test in tests:
+#         ans = get_num_in_field_quantity(test)
+#         print(ans, type(ans))
