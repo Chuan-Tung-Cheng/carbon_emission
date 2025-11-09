@@ -63,36 +63,6 @@ def get_num_in_field_quantity(text: str) -> float | str | None:
                     return match_num_with_chinese(matches)
     return None
 
-def get_unit_in_field_quantity(text: str) -> float | str | None:
-    """
-    Separate the number and thr unit, and mainly fetch the number
-    """
-    # first filter: check if text has digits
-    have_num = any(num.isdigit() for num in text)
-    if have_num: # check if text has numerics
-        # second filter: check if text has "~", "-", "～"
-        if any(sep in text for sep in ("~", "-", "～", "至", "_")):
-            matches = rep.CMP_PATTERN_WITH_DIGITAL_RANGE.finditer(text)
-            if matches is not None:
-                return match_unit(matches)
-        else:
-            matches = rep.COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
-            if matches is not None:
-                return match_unit(matches)
-
-    else: # first filter: check if text has chinese-character numbers
-        have_char_num = have_chinese_char_num(text)
-        if have_char_num:
-            # second filter: check if text has "~", "-", "～"
-            if any(sep in text for sep in ("~", "-", "～", "至", "_")):
-                matches = rep.COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
-                if matches is not None:
-                    return match_unit(matches)
-            else:
-                matches = rep.COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
-                if matches is not None:
-                    return match_unit(matches)
-    return None
 
 def have_chinese_char_num(text) -> bool:
     """
