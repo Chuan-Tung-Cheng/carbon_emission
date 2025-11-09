@@ -7,6 +7,13 @@ from dotenv import load_dotenv
 load_dotenv()
 CSV_DIR = os.getenv("CSV_DIR_2")
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='my_app.log',  # <--- 關鍵：指定檔案名稱
+    filemode='a',           # 'a' 表示附加 (append, 預設)，'w' 表示每次覆寫 (overwrite)
+    encoding='utf-8'        # 強烈建議加上編碼，避免中文亂碼
+)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
