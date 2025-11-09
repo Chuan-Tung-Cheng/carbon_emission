@@ -28,9 +28,10 @@ def get_num_in_field_quantity(text: str) -> float | str | None:
     """
     Separate the number and thr unit, and mainly fetch the number
     """
+
+    have_digit_num = any(num.isdigit() for num in text)
     # first filter: check if text has digits
-    have_num = any(num.isdigit() for num in text)
-    if have_num: # check if text has numerics
+    if have_digit_num: # with digits
         # second filter: check if text has "~", "-", "～"
         if any(sep in text for sep in ("~", "-", "～", "至", "_")):
             matches = rep.COMPILED_PATTERN_WITH_NUMBERS_RANGE.finditer(text)
@@ -40,7 +41,7 @@ def get_num_in_field_quantity(text: str) -> float | str | None:
             matches = rep.COMPILED_PATTERN_WITH_NUMBERS.finditer(text) # bool
             if matches is not None:
                 return match_num_with_digit(matches)
-    else: # first filter: check if text has chinese-character numbers
+    else: # without digits
         have_char_num = have_chinese_char_num(text)
         if have_char_num:
             # second filter: check if text has "~", "-", "～"
