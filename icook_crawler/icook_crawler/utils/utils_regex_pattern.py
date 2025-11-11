@@ -112,64 +112,6 @@ CHAR_NUM_MAPS = {
     "十": 10,
 }
 
-"""values are names that are regularly expressed"""
-INGREDIENT_NAME_CONVERSION_EGG = {
-    "蛋": "雞蛋",
-}
-
-INGREDIENT_NAME_CONVERSION_MUSHROOM = {
-    "雪白菇": "雪白菇",
-    "金針菇": "金針菇",
-    "菇": "香菇",
-}
-
-INGREDIENT_NAME_CONVERSION_VEGETABLE = {
-    "番茄": "番茄",
-    "茄": "茄子",
-    "菠菜" : "菠菜",
-    "菜" : "青菜",
-    "刁草" : "茴香",
-    "芹" : "西洋芹",
-    "洋蔥" : "洋蔥",
-    "蔥" : "青蔥",
-    "蒜" : "蒜頭",
-    "杏仁" : "杏仁"
-
-}
-
-INGREDIENT_NAME_CONVERSION_MEAT = {
-    "牛" : "牛肉",
-    "雞" : "雞肉",
-    "豬" : "豬肉",
-    "羊" : "羊肉",
-    "文魚" : "文魚",
-    "魚" : "魚",
-}
-
-INGREDIENT_NAME_CONVERSION_LIQUID = {
-    "水" : "水",
-    "高湯" : "水",
-    "紅酒" : "葡萄酒"
-}
-
-INGREDIENT_NAME_CONVERSION_FRUIT = {
-    "檸檬" : "檸檬",
-    "小蕃茄" : "小蕃茄",
-
-}
-
-
-INGREDIENT_NAME_CONVERSION_MILK = {
-    "奶油" : "奶油",
-
-}
-
-
-INGREDIENT_NAME_CONVERSION_SUGAR = {
-    "糖" : "糖",
-}
-
-
 
 def blank_comma_removal(text: str) -> str:
     """
@@ -184,47 +126,20 @@ def blank_comma_removal(text: str) -> str:
         return text
     return text
 
-def ingredient_name_conversion(name: str) -> str | None:
-    """regEx ingredient's name from recipes"""
-
-    if "蛋" in name:
-        for component in INGREDIENT_NAME_CONVERSION_EGG:
-            if component in name:
-                name = INGREDIENT_NAME_CONVERSION_EGG[component]
-                return name
-    if "菇" in name:
-        for component in INGREDIENT_NAME_CONVERSION_MUSHROOM:
-            if component in name:
-                name = INGREDIENT_NAME_CONVERSION_MUSHROOM[component]
-                return name
-
-    for ch in ["牛", "雞", "豬", "羊", "魚"]: # category: meat
-        if ch in name:
-            for component in INGREDIENT_NAME_CONVERSION_MEAT:
-                if component in name:
-                    name = INGREDIENT_NAME_CONVERSION_MEAT[component]
-                    return name
-
-    for category in INGREDIENT_NAME_CONVERSION_FRUIT: #category: fruit
-        if category in name:
-            name = INGREDIENT_NAME_CONVERSION_MUSHROOM[category]
-            return name
-
-    return None
 
 
 if __name__ == "__main__":
-    text = "雞肉"
+    pass
+    # text = "雞肉"
     # matches =re.finditer(CMP_PATTERN_WITH_DIGITAL_FRACTION_RANGE, text)
     # for m in matches:
     #     print(m.group(0))
     #     print(m.group(1))
     #     print(m.group(2))
-    ans = ingredient_name_conversion(text)
-    print(ans)
+    # ans = ingredient_name_conversion(text)
+    # print(ans)
     # for ch in reversed(text):
     #     if ch in INGREDIENT_NAME_CONVERSION:
     #         text = INGREDIENT_NAME_CONVERSION[ch]
     #         break
-
     # print(text)
