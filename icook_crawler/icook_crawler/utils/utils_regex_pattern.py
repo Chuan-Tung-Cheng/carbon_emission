@@ -112,6 +112,35 @@ CHAR_NUM_MAPS = {
     "十": 10,
 }
 
+"""values are names that are regularly expressed"""
+INGREDIENT_NAME_CONVERSION_EGG = {
+    "蛋": "雞蛋",
+}
+
+INGREDIENT_NAME_CONVERSION_MUSHROOM = {
+    "雪白菇": "雪白菇",
+    "金針菇": "金針菇",
+    "菇": "香菇",
+}
+
+INGREDIENT_NAME_CONVERSION_VEGE = {
+    "番茄": "番茄",
+    "茄": "茄子",
+}
+
+INGREDIENT_NAME_CONVERSION_MEAT = {
+    "牛": "牛肉",
+    "雞": "雞肉",
+    "豬": "豬肉",
+    "羊": "羊肉",
+}
+
+INGREDIENT_NAME_CONVERSION_LIQUID = {
+    "水": "水",
+}
+
+
+
 def blank_comma_removal(text: str) -> str:
     """
     For field: people
@@ -125,11 +154,29 @@ def blank_comma_removal(text: str) -> str:
         return text
     return text
 
+def ingredient_name_conversion(name: str) -> str | None:
+    """regEx ingredient's name from recipes"""
+
+    if "蛋" in name:
+        for component in INGREDIENT_NAME_CONVERSION_EGG:
+            if component in name:
+                name = INGREDIENT_NAME_CONVERSION_EGG[component]
+                return name
+
+    return None
+
 
 if __name__ == "__main__":
-    text = "1/3~1/2kg"
-    matches =re.finditer(CMP_PATTERN_WITH_DIGITAL_FRACTION_RANGE, text)
-    for m in matches:
-        print(m.group(0))
-        print(m.group(1))
-        print(m.group(2))
+    text = "雞肉"
+    # matches =re.finditer(CMP_PATTERN_WITH_DIGITAL_FRACTION_RANGE, text)
+    # for m in matches:
+    #     print(m.group(0))
+    #     print(m.group(1))
+    #     print(m.group(2))
+
+    # for ch in reversed(text):
+    #     if ch in INGREDIENT_NAME_CONVERSION:
+    #         text = INGREDIENT_NAME_CONVERSION[ch]
+    #         break
+
+    # print(text)
