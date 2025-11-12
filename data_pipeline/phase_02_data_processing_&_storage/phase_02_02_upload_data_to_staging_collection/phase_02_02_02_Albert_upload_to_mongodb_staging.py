@@ -2,7 +2,7 @@ import os
 import signal
 import sys
 
-import phase_02_01_01_Albert_download_data_from_kafka as kafka
+import phase_02_02_01_Albert_download_data_from_kafka as kafka
 import utils.mongodb_connection as mondb
 
 DATABASE_1 = os.getenv("DATABASE_1")
