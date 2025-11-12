@@ -26,7 +26,7 @@ The system automatically extracts, processes, and analyzes recipes to estimate t
 Produce meaningful insights on sustainable food choices for personal updating
 
 🔁 Data Flow Overview
-```mermaid
+```
 flowchart TD
     A[Scrapy] -->|Export| B[CSV]
     A --> C[Kafka Topic]
@@ -38,7 +38,7 @@ flowchart TD
 ```
 
 🏗️ Project Architecture
-```mermaid
+```
 carbon_emission_project/
 │
 ├── dags/
