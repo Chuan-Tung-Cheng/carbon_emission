@@ -112,6 +112,7 @@ CHAR_NUM_MAPS = {
     "十": 10,
 }
 
+
 def blank_comma_removal(text: str) -> str:
     """
     For field: people
@@ -126,10 +127,19 @@ def blank_comma_removal(text: str) -> str:
     return text
 
 
+
 if __name__ == "__main__":
-    text = "1/3~1/2kg"
-    matches =re.finditer(CMP_PATTERN_WITH_DIGITAL_FRACTION_RANGE, text)
-    for m in matches:
-        print(m.group(0))
-        print(m.group(1))
-        print(m.group(2))
+    pass
+    # text = "雞肉"
+    # matches =re.finditer(CMP_PATTERN_WITH_DIGITAL_FRACTION_RANGE, text)
+    # for m in matches:
+    #     print(m.group(0))
+    #     print(m.group(1))
+    #     print(m.group(2))
+    # ans = ingredient_name_conversion(text)
+    # print(ans)
+    # for ch in reversed(text):
+    #     if ch in INGREDIENT_NAME_CONVERSION:
+    #         text = INGREDIENT_NAME_CONVERSION[ch]
+    #         break
+    # print(text)
