@@ -1,13 +1,16 @@
 import logging
+import os
 import subprocess, sys
 
 from datetime import datetime
 from pathlib import Path
 
+
 class IcookDailySpider:
     def __init__(self, keyword="latest"):
         # start from the latest part
         self.keyword = keyword
+        self.env = os.getenv("AIRFLOW_ENV", "dev")
         # project root dir: project_footprint_calculation
         self.project_root = Path(__file__).resolve().parents[4] # find the root directory
         # program-running dir
@@ -21,16 +24,16 @@ class IcookDailySpider:
         self.output_file_path = self.output_dir / f"icook_recipe_{datetime.today().date()}.csv"
 
         # === Logging ===
-        log_dir = self.project_root / "logs" / "scrapy"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log_file = log_dir / f"icook_{datetime.today().strftime('%Y%m%d_%H%M%S')}.log"
+        self.log_dir = self.project_root / "logs" / "scrapy"
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_file = self.log_dir / f"icook_{datetime.today().strftime('%Y%m%d_%H%M%S')}.log"
 
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s [%(levelname)s] %(message)s",
             handlers=[
-                logging.FileHandler(log_file),
-                logging.StreamHandler()  # 同時輸出到 console（方便在 Airflow log 看）
+                logging.FileHandler(self.log_file, encoding="utf-8"),
+                logging.StreamHandler(sys.stdout)  # 同時輸出到 console（方便在 Airflow log 看）
             ]
         )
 
@@ -42,30 +45,39 @@ class IcookDailySpider:
         command = [
             "scrapy", "crawl", "icook_daily",
             "-a", f"keyword={self.keyword}",
-            "-O", str(self.output_file_path)
+            "-O", str(self.output_file_path),
+            "--logfile", str(self.log_file),
+            "--loglevel", "DEBUG",
         ]
 
         self.logger.info(f"[INFO] Start processing...")
         self.logger.info(f"[INFO] Output: {self.output_file_path}")
 
         try:
-            result = subprocess.run(
-                args=command,
-                cwd=self.scapy_project_dir,
-                check=True,
-                text=True,
-                stderr = sys.stderr,
-            )
+            if self.env == "production": # run in the airflow container
+                return_code= subprocess.run(
+                    args=command,
+                    cwd=self.scapy_project_dir,
+                    check=False,
+                ).returncode
 
-            if result.stdout:
-                self.logger.info("[SCRAPY STDOUT]")
+
+                if return_code == 0:
+                    self.logger.info("[SUCCESS] Scrapy completed successfully.")
+                else:
+                    self.logger.error(f"[ERROR] Scrapy exited with code {return_code}")
+            else: # run in the local device
+                result = subprocess.run(
+                    command,
+                    cwd=self.scapy_project_dir,
+                    check=True,
+                    text=True,
+                    capture_output=True
+                )
                 self.logger.info(result.stdout)
-
-            if result.stderr:
-                self.logger.warning("[SCRAPY STDERR]")
-                self.logger.warning(result.stderr)
-
-            self.logger.info(f"[SUCCESS] Scrapy completed successfully.")
+                if result.stderr:
+                    self.logger.warning(result.stderr)
+                self.logger.info("[SUCCESS] Scrapy completed successfully (dev mode).")
 
         except subprocess.CalledProcessError as e:
             self.logger.info(f"[ERROR] Failed!")
@@ -73,3 +85,6 @@ class IcookDailySpider:
 
         finally:
             self.logger.info("Scrapy task finished.")
+
+if __name__ == "__main__":
+    IcookDailySpider().run()

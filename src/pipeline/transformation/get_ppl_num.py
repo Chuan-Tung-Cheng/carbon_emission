@@ -1,4 +1,4 @@
-import utils_separate_num as sen
+import get_num as sen
 import pandas as pd
 
 from twisted.protocols.amp import Decimal

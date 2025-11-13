@@ -1,5 +1,5 @@
 import utils_regex_pattern as rep
-from utils_separate_num import have_chinese_char_num
+from get_num import have_chinese_char_num
 
 
 """The below is to get the number part"""

@@ -113,21 +113,6 @@ CHAR_NUM_MAPS = {
 }
 
 
-def blank_comma_removal(text: str) -> str:
-    """
-    For field: people
-    Remove the comma symbol.
-    Here it will also remove blanks.
-    """
-    text = text.replace("\n", "").replace("\t","").strip()
-
-    if "," in text:
-        text = text.replace(",", "")
-        return text
-    return text
-
-
-
 if __name__ == "__main__":
     pass
     # text = "雞肉"

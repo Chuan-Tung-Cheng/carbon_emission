@@ -181,12 +181,30 @@ INGREDIENT_MAP = {
     "嫩豆腐": "豆腐",
 }
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1] # find the root directory
-print(PROJECT_ROOT)
+PROJECT_ROOT = Path(__file__).resolve().parents[3] # find the root directory
 # count = len(INGREDIENT_MAP)
 # print(count)
 
-# df = pd.read_csv("/Users/cct/Desktop/python_project/carbon_emission/ingredients_data/ingredient_data_2025-11-11.csv")
-# df.columns = df["ingredients"]
-# df.dropna(inplace=True)
-# print(df)
+UNPROCESSED_DIR = PROJECT_ROOT / "data" / "mongodb" / "Albert" / "ingredient_data_2025-11-12_remain.csv"
+
+def v1_convert(str):
+    if str in INGREDIENT_MAP:
+        return INGREDIENT_MAP[str]
+    else:
+        return None
+
+def main():
+    df = pd.read_csv(PROJECT_ROOT / "data" / "mongodb" / "Albert" / "ingredient_data_2025-11-12.csv")
+    ingredient_counts = df.count()
+    # print(ingredient_counts)
+    ingredient_dif_counts = df["ingredients"].nunique()
+    print(ingredient_dif_counts)
+    df.dropna(inplace=True)
+    df["t_ingredients"] = df["ingredients"].astype(str).apply(v1_convert)
+    # print(df[df["t_ingredients"] == True].count())
+    unprocessed_df = df[df["t_ingredients"].isna() == True]
+    print(df[df["t_ingredients"].isna() == True]) # the left 375,410
+    unprocessed_df.to_csv(UNPROCESSED_DIR, index=False)
+
+if __name__ == "__main__":
+    main()

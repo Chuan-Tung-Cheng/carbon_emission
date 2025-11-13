@@ -1,3 +1,4 @@
+import logging
 import subprocess, sys
 
 from datetime import datetime
@@ -12,8 +13,26 @@ DATA_DIR = PROJECT_ROOT / "data" / "daily"
 
 KEYWORD = "latest"
 
+
 def run_scrapy():
-    print(f"Processing...")
+    # === Logging ===
+    log_dir = PROJECT_ROOT / "logs" / "scrapy"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / f"icook_{datetime.today().strftime('%Y%m%d_%H%M%S')}.log"
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            logging.FileHandler(log_file, encoding="utf-8"),
+            logging.StreamHandler()  # 同時輸出到 console（方便在 Airflow log 看）
+        ]
+    )
+
+    logger = logging.getLogger(__name__)
+    logger.info(f"Initialized IcookDailySpider with keyword={KEYWORD}")
+
+    logger.info(f"Processing...")
     # create data dir
     output_dir = DATA_DIR / f"Created_on_{datetime.today().date()}"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -28,22 +47,30 @@ def run_scrapy():
         "-O", str(output_file_path)
     ]
 
-    print(f"[INFO] Start processing...")
-    print(f"[INFO] Output: {output_file_path}")
+    logger.info(f"[INFO] Start processing...")
+    logger.info(f"[INFO] Output: {output_file_path}")
 
     try:
-        subprocess.run(
+        result = subprocess.run(
             args=command,
             cwd=SCRAPY_PROJECT_DIR,
             check=True,
             text=True,
-            stdout=sys.stdout,
-            stderr=sys.stderr,
+            capture_output=True,
         )
-        print(f"[SUCCESS] Completed!")
+
+        if result.stdout:
+            logger.info("[SCRAPY STDOUT]")
+            logger.info(result.stdout)
+
+        if result.stderr:
+            logger.warning("[SCRAPY STDERR]")
+            logger.warning(result.stderr)
+
+        logger.info(f"[SUCCESS] Completed!")
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] Failed!")
-        print(e.stderr)
+        logger.info(f"[ERROR] Failed!")
+        logger.info(e.stderr)
 
 
 def main():

@@ -1,0 +1,27 @@
+# Apache Airflow official image
+FROM apache/airflow:2.11.0-python3.12
+
+# switch to root install basic installments
+USER root
+
+# 3安裝系統依賴（Scrapy、Kafka client 需要編譯工具與 lib）
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libxml2-dev \
+    libxslt1-dev \
+    python3-dev \
+    default-libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# switch to  airflow user
+USER airflow
+
+# install Python's package we need
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir \
+    scrapy \
+    pandas \
+    requests \
+    bs4 \
+    confluent-kafka
+
