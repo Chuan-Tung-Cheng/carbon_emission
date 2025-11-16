@@ -2,8 +2,8 @@ from confluent_kafka.admin import AdminClient, NewTopic, NewPartitions
 from confluent_kafka import KafkaError
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2] # root directory
-ENV_FILE_PATH = PROJECT_ROOT / "kafka" / "producer"/ ".env"
+PROJECT_ROOT = Path(__file__).resolve().parents[3] # root directory
+ENV_FILE_PATH = PROJECT_ROOT / "kafka" / ".env"
 
 
 def setup_kafka_topics(admin, desired_topics_config, replication=1):
@@ -77,7 +77,7 @@ def setup_kafka_topics(admin, desired_topics_config, replication=1):
                     lines = [line for line in lines if line.strip()]  # remove the blank lines
                     if lines:
                         last_line = lines[-1]
-                        if last_line.startswith("TOPIC_"):
+                        if last_line.startswith("KAFKA_TOPIC_"):
                             last_key = last_line.split("=")[0] # get "TOPIC_3"
                             last_num = int(last_key.split("_")[-1]) # get 3
                             start_index = last_num + 1
@@ -152,4 +152,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    print(PROJECT_ROOT)

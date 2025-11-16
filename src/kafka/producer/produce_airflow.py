@@ -7,14 +7,15 @@ from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 
-load_dotenv()
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2] # root directory
+PROJECT_ROOT = Path(__file__).resolve().parents[3] # root directory
+ENV_FILE_PATH = PROJECT_ROOT / "kafka" /".env"
+load_dotenv(ENV_FILE_PATH)
+
 LOG_DIR_PRODUCE = PROJECT_ROOT / "logs" / "kafka" / "produce"
 CSV_DIR = PROJECT_ROOT / "data" / "daily"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
-TOPIC_NAME = os.getenv("TOPIC_1")
-
+TOPIC_NAME = os.getenv("KAFKA_TOPIC_1")
 
 def find_csv():
     """return: CSV file path"""
@@ -64,16 +65,16 @@ def convert_csv_to_dict(c, logger):
     return insert_dict_file
 
 def get_log_file():
-    return LOG_DIR_PRODUCE / f"produce_{datetime.today().strftime('%Y%m%d_%H%M%S')}.log"
+    return LOG_DIR_PRODUCE / f"produce_{datetime.today().date()}.log"
 
 def set_log_config(log_file):
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
         handlers=[
-            logging.FileHandler(log_file, encoding="utf-8"),
+            logging.FileHandler(log_file, encoding="utf-8", mode="a"),
             logging.StreamHandler(sys.stdout)  # 同時輸出到 console（方便在 Airflow log 看）
-        ]
+        ],
     )
 
 def activate_producer(logger):
@@ -94,15 +95,6 @@ def delivery_callback(err, msg, logger):
         logger.info('%% Message failed delivery: %s\n' % err)
     else:
         pass
-        # 為了不讓打印訊息拖慢速度, 我們每1萬打印一筆record Metadata來看
-        # if msg.offset % 10000 == 0:
-        #     logger.info(
-        #         '%% Message delivered to topic: {}, partition: {}, offset: {}\n'.format(
-        #             msg.topic(),
-        #             msg.partition(),
-        #             msg.offset()
-        #         )
-        #     )
 
 def produce_message(producer, dict_list, topic_name, logger):
     """
@@ -135,7 +127,7 @@ def produce_message(producer, dict_list, topic_name, logger):
     logger.info(f"Time spend : {time_spend} ms")
     logger.info(f"Throughput : {msg_count / time_spend * 1000} msg/sec")
 
-def main():
+def produce():
     ### Create log file
     log_producer_dir = LOG_DIR_PRODUCE
     log_producer_dir.mkdir(parents=True, exist_ok=True)
@@ -181,4 +173,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # produce()
+    print(PROJECT_ROOT)
