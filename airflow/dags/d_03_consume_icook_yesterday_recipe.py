@@ -1,17 +1,17 @@
 import os
 import pendulum
 
-from src.kafka.producer.produce_airflow import produce
+from src.kafka.consumer.consume_airflow import consume_messages
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 
-os.makedirs(f"/opt/airflow/logs/kafka/produce", exist_ok=True)
+os.makedirs(f"/opt/airflow/logs/kafka/consume", exist_ok=True)
 
 LOCAL_TZ = pendulum.timezone("Asia/Taipei")
 
-def produce_messages():
-    produce()
+def consume_messages():
+    consume_messages()
 
 
 # Default arguments for the DAG
@@ -27,19 +27,19 @@ default_args = {
 
 # Define the DAG
 dag = DAG(
-    'd_02_produce_icook_yesterday_recipe',  #
+    'd_03_consume_icook_yesterday_recipe',  #
     default_args=default_args,
     description='Python operators',  #
-    schedule_interval="0 10 * * *",  #
+    schedule_interval="0 12 * * *",  #
     start_date=datetime(2025, 11, 17, tzinfo=LOCAL_TZ),
     catchup=False,
-    tags=["produce", "icook"]
+    tags=["consume", "icook"]
 )
 
 # Define the tasks
 task1_obj = PythonOperator(
-    task_id='produce_messages',
-    python_callable=produce_messages,
+    task_id='consume_messages',
+    python_callable=consume_messages,
     dag=dag,
 )
 

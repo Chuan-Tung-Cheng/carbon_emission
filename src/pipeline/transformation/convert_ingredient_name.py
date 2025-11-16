@@ -194,6 +194,12 @@ def v1_convert(str):
         return None
 
 def main():
+    """
+    algorithm
+    v1_convert() # use Ingredient Map
+    V2_convert() # remove (), comma , and so on
+    """
+
     df = pd.read_csv(PROJECT_ROOT / "data" / "mongodb" / "Albert" / "ingredient_data_2025-11-12.csv")
     ingredient_counts = df.count()
     # print(ingredient_counts)

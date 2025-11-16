@@ -141,7 +141,7 @@ def try_decode_utf8(data):
     else:
         return None
 
-def main():
+def consume_messages():
     f"""
     Retrieve data from Kafka.
     Topic: {TOPIC_NAME}

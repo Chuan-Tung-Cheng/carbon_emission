@@ -14,11 +14,14 @@
     --restart unless-stopped \
     -p 8080:8080 \
     -v $PWD/airflow/dags:/opt/airflow/dags \
-    -v $PWD/airflow/logs:/opt/airflow/logs \
+    -v $PWD/airflow/tasks:/opt/airflow/tasks \
+    -v $PWD/airflow/utils:/opt/airflow/utils \
+    -v $PWD/logs:/opt/airflow/logs \
+    -v $PWD/data:/opt/airflow/data \
     -v $PWD/src:/opt/airflow/src \
     -e PYTHONPATH=/opt/airflow \
     -e AIRFLOW_ENV=production \
-    airflow-scrapy-kafka:v1 \
+    airflow-server:v2 \
     airflow standalone
     ```
 3. create your own account for manipulating Airflow GUI
@@ -31,12 +34,3 @@
     --role Admin \
     --email your_email@example.com
    ```
-   
-
-airflow users create \
---username albert_cheng \
---firstname albert \
---password albert_cheng \
---lastname cheng \
---role Admin \
---email chengreentea0813@gmail.com

@@ -23,5 +23,6 @@ RUN pip install --no-cache-dir \
     pandas \
     requests \
     bs4 \
-    confluent-kafka
+    confluent-kafka \
+    pymongo
 
