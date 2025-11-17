@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3] # root directory
-ENV_FILE_PATH = PROJECT_ROOT / "kafka" /".env"
+ENV_FILE_PATH = PROJECT_ROOT / "src" /"kafka" /".env"
 load_dotenv(ENV_FILE_PATH)
 
 LOG_DIR_PRODUCE = PROJECT_ROOT / "logs" / "kafka" / "produce"
