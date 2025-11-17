@@ -26,13 +26,13 @@ class IcookDailySpider:
         # === Logging ===
         self.log_dir = self.project_root / "logs" / "scrapy"
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.log_file = self.log_dir / f"icook_{datetime.today().strftime('%Y%m%d_%H%M%S')}.log"
+        self.log_file = self.log_dir / f"icook_{datetime.today().date()}.log"
 
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s [%(levelname)s] %(message)s",
             handlers=[
-                logging.FileHandler(self.log_file, encoding="utf-8"),
+                logging.FileHandler(self.log_file, encoding="utf-8", mode="a"),
                 logging.StreamHandler(sys.stdout)  # 同時輸出到 console（方便在 Airflow log 看）
             ]
         )
