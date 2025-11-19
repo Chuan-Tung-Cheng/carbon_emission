@@ -79,7 +79,7 @@ def set_log_config(log_file):
 
 def activate_producer(logger):
     props = {
-        'bootstrap.servers': 'localhost:9092',  # <-- 置換成要連接的Kafka集群
+        'bootstrap.servers': 'localhost:9092',  # <-- for localhost usage
         # 'acks': 'all',
         # 'linger.ms': 5,
         # 'batch.size': 32768,
