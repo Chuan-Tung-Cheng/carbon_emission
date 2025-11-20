@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import os, sys
 import re
@@ -134,8 +135,9 @@ def main():
         logger.info("Dropping completed")
 
         # Unwind values of field ingredients
+        logger.info("Unwinding ...")
         ingredient_df_explode = unwind(ingredient_df, "ingredients")
-
+        logger.info("Unwinding completed")
         # Remove parentheses of values of field ingredients
         ingredient_df_explode["t_ingredients"] = ingredient_df_explode["ingredients"].apply(remove_parentheses)
         # ingredient_df_explode.info()
@@ -146,6 +148,9 @@ def main():
         # Get num
         ingredient_df_explode["t_number"] = ingredient_df_explode["quantity"].apply(num)
         ingredient_df_explode["t_unit"] = ingredient_df_explode["t_unit"].apply(unit_g_convertion)
+        criteria = ["適量", "少許", "依喜好"]
+        ingredient_df_explode.loc[ingredient_df_explode["t_unit"].isin(criteria), "t_number"] = float(1)
+
         with open(file="test.csv", mode="w", encoding="utf-8-sig", newline="") as csv_file:
             csv_file.write(ingredient_df_explode.to_csv(index=False))
 
