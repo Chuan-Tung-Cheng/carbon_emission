@@ -4,18 +4,23 @@ import time
 import os
 import re
 
+from dotenv import load_dotenv
+from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Union
 from google import genai
 from google.genai import types
 
-# ================= CONFIGURATION =================
-API_KEY = os.getenv("GEMINI_API_KEY", "請填入API KEY") 
-MODEL_NAME = "gemini-2.5-pro"
-
 # 檔案路徑
-ROOT_DIR = Path(__file__).resolve().parents[2] # Root dir : project_footprint_calculation
+ROOT_DIR = Path(__file__).resolve().parents[5] # Root dir : project_footprint_calculation
 MAPPING_DB_FILE = ROOT_DIR / "data" / "db_unit_normalization" / "unit_normalization_db.csv"
+
+# ================= CONFIGURATION =================
+load_dotenv(ROOT_DIR / "src" / "utils" / ".env")
+API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL_NAME = "gemini-2.5-flash"
+
+
 
 # ================= 轉換規則庫 =================
 STANDARD_RULES: Dict[str, float] = {
@@ -49,7 +54,7 @@ VOLUME_TO_ML: Dict[str, float] = {
 
 class IngredientNormalizer:
     def __init__(self):
-        self.client = genai.Client(api_key="AIzaSyBrait4AjkAUr4LQC1kKQZ35KrSR2ItFtg")
+        self.client = genai.Client(api_key=API_KEY)
         self.mapping_db = self._load_mapping_db()
         
     def _load_mapping_db(self) -> pd.DataFrame:
@@ -217,14 +222,15 @@ class IngredientNormalizer:
 
 def main():
     project_root = Path(__file__).parents[2]
-    input_csv = project_root / "data/db_ingredients/icook_recipe_2025-11-19_mydatabase_recipe_ingredients.csv"
-    output_csv = project_root / "data/db_ingredients/icook_recipe_2025-11-19_mydatabase_recipe_ingredients_unitN.csv"
+    input_csv = project_root / f"data/db_ingredients/icook_recipe_{datetime.today().date()}_mydatabase_recipe_ingredients.csv"
+    output_csv = project_root / f"data/db_ingredients/icook_recipe_{datetime.today().date()}_mydatabase_recipe_ingredients_unitN.csv"
 
     if input_csv.exists():
         normalizer = IngredientNormalizer()
         normalizer.process_csv(input_csv, output_csv)
     else:
         print(f"{input_csv} not found.")
+
 
 if __name__ == "__main__":
     main()
