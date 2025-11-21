@@ -3,6 +3,7 @@ import json
 import time
 import os
 import re
+
 from pathlib import Path
 from typing import List, Dict, Optional, Union
 from google import genai
@@ -10,11 +11,11 @@ from google.genai import types
 
 # ================= CONFIGURATION =================
 API_KEY = os.getenv("GEMINI_API_KEY", "請填入API KEY") 
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-2.5-pro"
 
 # 檔案路徑
-CURRENT_DIR = Path(__file__).parent
-MAPPING_DB_FILE = CURRENT_DIR / "unit_mapping_db.csv"
+ROOT_DIR = Path(__file__).resolve().parents[2] # Root dir : project_footprint_calculation
+MAPPING_DB_FILE = ROOT_DIR / "data" / "db_unit_normalization" / "unit_normalization_db.csv"
 
 # ================= 轉換規則庫 =================
 STANDARD_RULES: Dict[str, float] = {
@@ -48,7 +49,7 @@ VOLUME_TO_ML: Dict[str, float] = {
 
 class IngredientNormalizer:
     def __init__(self):
-        self.client = genai.Client(api_key=API_KEY)
+        self.client = genai.Client(api_key="AIzaSyBrait4AjkAUr4LQC1kKQZ35KrSR2ItFtg")
         self.mapping_db = self._load_mapping_db()
         
     def _load_mapping_db(self) -> pd.DataFrame:
@@ -59,7 +60,7 @@ class IngredientNormalizer:
             except pd.errors.EmptyDataError:
                 pass
         print(" 建立新的 AI 知識庫")
-        return pd.DataFrame(columns=['Ingredient_Name', 'Unit', 'Grams_Per_Unit'])
+        return pd.DataFrame(columns=['ingredients', 'unit_name', 'grams_per_unit'])
 
     def _save_mapping_db(self):
         if not self.mapping_db.empty:
@@ -94,6 +95,7 @@ class IngredientNormalizer:
         1. Estimate weight in grams for 1 unit.
         2. For vague units, use approx values (0.5-2.0).
         3. If unknown, return 0.
+        4. You cannot generate Null
         """
         max_retries = 3
         for attempt in range(max_retries):
@@ -109,24 +111,24 @@ class IngredientNormalizer:
                 time.sleep(2) # 重試前稍微等待
         return None
 
-    def process_csv(self, input_csv_path: Path, output_csv_path: Path):
-        print(f"\n 開始處理檔案：{input_csv_path}")
+    def process_csv(self, input_csv: Path, output_csv_path: Path) -> pd.DataFrame:
+        print(f"\n Start processing the dataframe：{input_csv}")
         try:
-            df = pd.read_csv(input_csv_path)
-        except FileNotFoundError:
-            print(f" 找不到檔案：{input_csv_path}")
+            df = pd.read_csv(input_csv)
+        except Exception as e:
+            print(f" 找不到檔案：{input_csv}, {e}")
             return
 
-        if 'Unit' not in df.columns or 'Ingredient_Name' not in df.columns:
+        if 'unit_name' not in df.columns or 'ingredients' not in df.columns:
             print(" CSV 欄位錯誤")
             return
 
-        candidates = df[df['Unit'].notna()][['Ingredient_Name', 'Unit']].drop_duplicates()
-        existing_db_keys = set(zip(self.mapping_db['Ingredient_Name'], self.mapping_db['Unit']))
+        candidates = df[df['unit_name'].notna()][['ingredients', 'unit_name']].drop_duplicates()
+        existing_db_keys = set(zip(self.mapping_db['ingredients'], self.mapping_db['unit_name']))
         
         unknown_pairs = []
         for _, row in candidates.iterrows():
-            name, unit = str(row['Ingredient_Name']), str(row['Unit'])
+            name, unit = str(row['ingredients']), str(row['unit_name'])
             
             if unit in STANDARD_RULES or unit in VOLUME_TO_ML: continue
             matched_specific = False
@@ -157,9 +159,9 @@ class IngredientNormalizer:
                 if result and 'items' in result:
                     for item in result['items']:
                         batch_new_records.append({
-                            'Ingredient_Name': item.get('name', 'Unknown'),
-                            'Unit': item.get('unit', 'Unknown'),
-                            'Grams_Per_Unit': item.get('g_per_unit', 0)
+                            'ingredients': item.get('name', 'Unknown'),
+                            'unit_name': item.get('unit', 'Unknown'),
+                            'grams_per_unit': item.get('g_per_unit', 0)
                         })
                 
                 if batch_new_records:
@@ -178,14 +180,14 @@ class IngredientNormalizer:
         # 3. 最終資料轉換
         print(" 正在進行最終單位換算...")
         if not self.mapping_db.empty:
-            ai_mapping = dict(zip(zip(self.mapping_db['Ingredient_Name'], self.mapping_db['Unit']), self.mapping_db['Grams_Per_Unit']))
+            ai_mapping = dict(zip(zip(self.mapping_db['ingredients'], self.mapping_db['unit_name']), self.mapping_db['grams_per_unit']))
         else:
             ai_mapping = {}
 
         def convert_row(row):
             w_str = str(row.get('Weight', 0))
-            u = str(row.get('Unit', ''))
-            name = str(row.get('Ingredient_Name', ''))
+            u = str(row.get('unit_name', ''))
+            name = str(row.get('ingredients', ''))
             
             try:
                 if pd.isna(row.get('Weight')) or w_str.lower() in ['nan', 'null', '']:
@@ -215,8 +217,8 @@ class IngredientNormalizer:
 
 def main():
     project_root = Path(__file__).parents[2]
-    input_csv = project_root / "data" / "daily" / "Created_on_2025-11-19" / "icook_recipe_2025-11-19.csv"
-    output_csv = project_root / "src/kevin_ytower_crawler/ytower_csv_output/ytower_recipes_normalized.csv"
+    input_csv = project_root / "data/db_ingredients/icook_recipe_2025-11-19_mydatabase_recipe_ingredients.csv"
+    output_csv = project_root / "data/db_ingredients/icook_recipe_2025-11-19_mydatabase_recipe_ingredients_unitN.csv"
 
     if input_csv.exists():
         normalizer = IngredientNormalizer()
